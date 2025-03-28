@@ -1,0 +1,52 @@
+import { ObjectType, Field, ID } from '@nestjs/graphql';
+import { Entity, Column, PrimaryGeneratedColumn, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
+import { BookRecommendation } from '../../book-rec/entities/book-rec.entity';
+import { Subject } from '../../subject/entities/subject.entity';
+
+@ObjectType()
+@Entity()
+export class Book {
+  @Field(() => ID)
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Field()
+  @Column()
+  title: string;
+
+  @Field()
+  @Column()
+  author: string;
+
+  @Field(() => ID)
+  @Column()
+  subject_seq: number;
+
+  @Field(() => Subject)
+  @ManyToOne(() => Subject, subject => subject.books)
+  @JoinColumn({ name: 'subject_seq' })
+  subject: Subject;
+
+  @Field({ nullable: true })
+  @Column({ nullable: true })
+  publisher: string;
+
+  @Field({ nullable: true })
+  @Column({ type: 'text', nullable: true })
+  description: string;
+
+  @Field({ nullable: true })
+  @Column({ nullable: true })
+  difficultyLevel: string;
+
+  @Field()
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  createdAt: Date;
+
+  @Field()
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP' })
+  updatedAt: Date;
+
+  @OneToMany(() => BookRecommendation, bookRecommendation => bookRecommendation.book)
+  bookRecommendations: BookRecommendation[];
+}
