@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EduCompass</title>
+
+  <script src="https://kit.fontawesome.com/46a3a0f15b.js" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="css/mypagestyle.css">
+</head>
+<body>
+
+  <!-- 상단바 -->
+  <header>
+    <nav>
+      <h2><a href="#">Edu<br>Compass</a></h2>
+      <ul>
+        <li><a href="#">계획 캘린더</a></li>
+        <li><a href="makeplanStart.html">AI 계획 생성</a></li>
+        <li><a href="#">학습 현황</a></li>
+        <li><a href="textbook.html">교재 추천</a></li>
+        <li><a href="#"class="active">마이페이지</a></li>
+      </ul>
+      <div class="log">
+        <div class="login">
+          <a href="login.html">login</a>
+        </div>
+        <div class="join">
+          <a href="join.html">join</a>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <!-- 메인 박스스 -->
+  <div class="main_container">
+    <div class="main_container_wrap">
+      <!-- 사이드바 -->
+      <aside class="sidebar">
+        <button class="menu-item active">
+            회원정보 <span class="arrow">></span>
+        </button>
+        <button class="menu-item" onclick="location.href='option.html'">
+          환경설정 <span class="arrow">></span>
+      </button>
+        <button class="logout">로그아웃</button>
+    </aside>
+
+      <!-- 회원정보 섹션 -->
+<main class="content">
+  <div class="info-box">
+    <h2 style="font-size: 18px;">회원정보</h2>
+      <table>
+          <tbody>
+              <tr>
+                  <td class="label">아이디</td>
+                  <td><input type="text" id="user-id" value="*" disabled></td>
+              </tr>
+              <tr>
+                  <td class="label">비밀번호</td>
+                  <td><input type="password" id="user-password" value="**********" disabled></td>
+              </tr>
+              <tr>
+                  <td class="label">이름</td>
+                  <td><input type="text" id="user-name" value="*" disabled></td>
+              </tr>
+              <tr>
+                  <td class="label">학교</td>
+                  <td><input type="text" id="user-school" value="*" disabled></td>
+              </tr>
+              <tr>
+                <td class="label">학년</td>
+                <td><input type="text" value="3학년" disabled></td>
+              </tr>
+              
+              <tr class="empty-row">
+                <td colspan="2"></td> 
+              </tr>
+
+              <tr>
+                <td class="label">이메일</td>
+                <td><input type="email" value="example@email.com" disabled></td>
+              </tr>
+
+              <tr style="border-bottom: none;">
+                <td colspan="2" style="text-align: left; padding-top: 10px; border-bottom: none;">
+                  <a href="#" class="withdraw-link" onclick="showWithdrawModal()">회원탈퇴</a>
+                </td>
+              </tr>
+            </table>
+      <div class="button-container">
+          <button class="edit-btn" id="edit-btn" onclick="toggleEdit()">수정</button>
+      </div>
+  </div>
+</main>
+<script>
+function toggleEdit() {
+    let inputs = document.querySelectorAll("table input");
+    let editButton = document.getElementById("edit-btn");
+
+    if (editButton.innerText === "수정") {
+        inputs.forEach(input => input.removeAttribute("disabled")); // 입력 
+        editButton.innerText = "저장"; 
+    } else {
+        inputs.forEach(input => input.setAttribute("disabled", "true")); // 비활성화
+        editButton.innerText = "수정"; 
+    }
+}
+
+</script>
+
+
+<div id="withdraw-modal" class="modal">
+  <div class="modal-content">
+    <p>정말 탈퇴하시겠습니까?</p>
+    <div class="modal-buttons">
+      <button onclick="confirmWithdraw()">확인</button>
+      <button onclick="closeModal()">취소</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  function showWithdrawModal() {
+    document.getElementById('withdraw-modal').style.display = 'flex';
+  }
+
+  function closeModal() {
+    document.getElementById('withdraw-modal').style.display = 'none';
+  }
+
+  function confirmWithdraw() {
+    closeModal();
+    alert("회원탈퇴가 완료되었습니다.");
+    // 실제 탈퇴 로직 추가 가능: location.href = 'withdraw.html';
+  }
+</script>
+
+</body>
+</html>
