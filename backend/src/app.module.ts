@@ -1,4 +1,3 @@
-// src/app.module.ts
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { GraphQLModule } from '@nestjs/graphql';
@@ -13,17 +12,14 @@ import { StudyPlanModule } from './apis/study-plan/study-plans.module';
 import { StudyStatusModule } from './apis/study-status/study-status.module';
 import { NoticeModule } from './apis/notice/notice.module';
 import { SubjectModule } from './apis/subject/subject.module';
-import { User } from './apis/users/entities/user.entity';
-import { EmailTemplate } from './apis/notice/entities/email-template.entity';
-import { NoticeSettings } from './apis/notice/entities/notice-settings.entity';
-import { AppController } from './apis/app.controller';
-import { AppService } from './apis/app.service';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+import * as session from 'express-session';
+import { PassportModule } from '@nestjs/passport';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-    }),
+    ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -34,7 +30,7 @@ import { AppService } from './apis/app.service';
         username: configService.get('DB_USERNAME') || 'root',
         password: configService.get('DB_PASSWORD') || '1234',
         database: configService.get('DB_DATABASE') || 'new_db_edu',
-        entities: [__dirname + '/**/*.entity{.ts,.js}', User, EmailTemplate, NoticeSettings],
+        entities: [__dirname + '/**/*.entity{.ts,.js}'],
         synchronize: false,
       }),
     }),
@@ -48,10 +44,9 @@ import { AppService } from './apis/app.service';
         console.error(error);
         return error;
       },
-      resolvers: {
-        DateTime: GraphQLISODateTime,
-      },
+      resolvers: { DateTime: GraphQLISODateTime },
     }),
+    PassportModule.register({ session: true }),
     UsersModule,
     AuthModule,
     BookModule,
@@ -59,7 +54,7 @@ import { AppService } from './apis/app.service';
     StudyPlanModule,
     StudyStatusModule,
     NoticeModule,
-    SubjectModule, 
+    SubjectModule,
   ],
   controllers: [AppController],
   providers: [AppService],

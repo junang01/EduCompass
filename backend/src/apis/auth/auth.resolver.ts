@@ -1,24 +1,32 @@
-import { Resolver, Mutation, Args } from '@nestjs/graphql';
+import { Resolver, Mutation, Args, Context } from '@nestjs/graphql';
 import { AuthService } from './auth.service';
-import { LoginUserInput } from '../users/dto/login-user.input';
-import { UnauthorizedException } from '@nestjs/common';
+import { LoginInput } from './dto/login.input';
+import { AuthPayload } from './entities/auth.payload';
+import { UnauthorizedException, UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 @Resolver()
 export class AuthResolver {
   constructor(private readonly authService: AuthService) {}
 
-  @Mutation(() => String)
-  async login(@Args('loginUserInput') loginUserInput: LoginUserInput) {
-    const user = await this.authService.validateUser(
-      loginUserInput.email,
-      loginUserInput.password,
-    );
+  @Mutation(() => AuthPayload)
+  async login(@Args('input') input: LoginInput) {
+    const user = await this.authService.validateUser(input.email, input.password);
     
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
     
-    const { accessToken } = await this.authService.login(user);
-    return accessToken;
+    return this.authService.login(user);
   }
+
+
+@Mutation(() => Boolean)
+@UseGuards(JwtAuthGuard)
+async logout() {
+  // 서버 측에서는 특별한 처리 없이 성공 응답만 반환
+  return true;
+}
+
+  
 }

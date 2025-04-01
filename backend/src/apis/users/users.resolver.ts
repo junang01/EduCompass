@@ -6,6 +6,7 @@ import { CreateUserInput } from './dto/create-user.input';
 import { UpdateUserInput } from './dto/update-user.input';
 import { GqlAuthGuard } from '../auth/guards/gql-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { RegisterUserInput } from './dto/register-user.input';
 
 @Resolver(() => User)
 export class UsersResolver {
@@ -35,6 +36,11 @@ export class UsersResolver {
   }
 
   @Mutation(() => User)
+async registerUser(@Args('input') registerUserInput: RegisterUserInput) {
+  return this.usersService.create(registerUserInput);
+}
+
+  @Mutation(() => User)
   @UseGuards(GqlAuthGuard)
   async updateUser(
     @Args('id', { type: () => Int }) id: number,
@@ -43,7 +49,7 @@ export class UsersResolver {
   ): Promise<User> {
 
     if (user.id !== id) {
-      throw new Error('You can only update your own information');
+      throw new Error('본인의 정보만 수정할 수 있습니다');
     }
     return this.usersService.update(id, updateUserInput);
   }
@@ -56,8 +62,14 @@ export class UsersResolver {
   ): Promise<boolean> {
 
     if (user.id !== id) {
-      throw new Error('You can only delete your own account');
+      throw new Error('본인의 계정만 삭제할 수 있습니다');
     }
     return this.usersService.delete(id);
+  }
+
+  @Mutation(() => Boolean)
+  @UseGuards(GqlAuthGuard)
+  async deleteMyProfile(@CurrentUser() user: User): Promise<boolean> {
+    return this.usersService.delete(user.id);
   }
 }

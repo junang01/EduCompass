@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Notice } from './entities/notice.entity';
+import { Notification } from './entities/notice.entity';
 import { INotice, INoticeService } from './interfaces/notice.interface';
 import * as nodemailer from 'nodemailer';
 
@@ -14,11 +14,11 @@ interface EmailData {
 @Injectable()
 export class NoticeService implements INoticeService {
   constructor(
-    @InjectRepository(Notice)
-    private readonly noticeRepository: Repository<Notice>,
+    @InjectRepository(Notification)
+    private readonly noticeRepository: Repository<Notification>,
   ) {}
 
-  async findAll(userId: number, args?: any): Promise<Notice[]> {
+  async findAll(userId: number, args?: any): Promise<Notification[]> {
     const query = this.noticeRepository.createQueryBuilder('notice')
       .where('notice.userId = :userId', { userId });
 
@@ -29,7 +29,7 @@ export class NoticeService implements INoticeService {
     return query.getMany();
   }
 
-  async findOne(id: number, userId: number): Promise<Notice> {
+  async findOne(id: number, userId: number): Promise<Notification> {
     const notice = await this.noticeRepository.findOne({ where: { id } });
     
     if (!notice) {
@@ -43,7 +43,7 @@ export class NoticeService implements INoticeService {
     return notice;
   }
 
-  async create(notice: INotice): Promise<Notice> {
+  async create(notice: INotice): Promise<Notification> {
     const newNotice = this.noticeRepository.create(notice);
     await this.sendEmailToParent({
       parentEmail: notice.receiverEmail,
@@ -53,7 +53,7 @@ export class NoticeService implements INoticeService {
     return this.noticeRepository.save(newNotice);
   }
 
-  async update(id: number, noticeData: Partial<INotice>, userId: number): Promise<Notice> {
+  async update(id: number, noticeData: Partial<INotice>, userId: number): Promise<Notification> {
     const notice = await this.findOne(id, userId);
     Object.assign(notice, noticeData);
     return this.noticeRepository.save(notice);

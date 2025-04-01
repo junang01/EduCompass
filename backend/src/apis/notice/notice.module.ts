@@ -3,12 +3,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
 import { NoticeResolver } from './notice.resolver';
 import { NoticeService } from './notice.service';
-import { Notice } from './entities/notice.entity';
+import { Notification } from './entities/notice.entity';
 
 @Module({
   imports: [
     ConfigModule.forRoot(), 
-    TypeOrmModule.forFeature([Notice]),
+    TypeOrmModule.forFeature([Notification]),
   ],
   providers: [NoticeResolver, NoticeService],
   exports: [NoticeService],

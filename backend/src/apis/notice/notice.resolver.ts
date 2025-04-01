@@ -1,7 +1,7 @@
 import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { NoticeService } from './notice.service';
-import { Notice } from './entities/notice.entity';
+import { Notification } from './entities/notice.entity';
 import { CreateNoticeInput } from './dto/create-notice.input';
 import { UpdateNoticeInput } from './dto/update-notice.input';
 import { NoticeArgs } from './dto/notice.args';
@@ -11,46 +11,46 @@ import { User } from '../users/entities/user.entity';
 import { SendEmailInput } from './dto/send-email.input';
 import { NoticeResponse } from './dto/notice-response';
 
-@Resolver(() => Notice)
+@Resolver(() => Notification)
 export class NoticeResolver {
   constructor(private readonly noticeService: NoticeService) {}
 
-  @Query(() => [Notice])
+  @Query(() => [Notification])
   @UseGuards(GqlAuthGuard)
   async notices(
     @CurrentUser() user: User,
     @Args() args: NoticeArgs,
-  ): Promise<Notice[]> {
+  ): Promise<Notification[]> {
     return this.noticeService.findAll(user.id, args);
   }
 
-  @Query(() => Notice)
+  @Query(() => Notification)
   @UseGuards(GqlAuthGuard)
   async notice(
     @Args('id', { type: () => Int }) id: number,
     @CurrentUser() user: User,
-  ): Promise<Notice> {
+  ): Promise<Notification> {
     return this.noticeService.findOne(id, user.id);
   }
 
-  @Mutation(() => Notice)
+  @Mutation(() => Notification)
   @UseGuards(GqlAuthGuard)
   async createNotice(
     @Args('createNoticeInput') createNoticeInput: CreateNoticeInput,
     @CurrentUser() user: User,
-  ): Promise<Notice> {
+  ): Promise<Notification> {
     return this.noticeService.create({
       ...createNoticeInput,
       userId: user.id,
     });
   }
 
-  @Mutation(() => Notice)
+  @Mutation(() => Notification)
   @UseGuards(GqlAuthGuard)
   async updateNotice(
     @Args('updateNoticeInput') updateNoticeInput: UpdateNoticeInput,
     @CurrentUser() user: User,
-  ): Promise<Notice> {
+  ): Promise<Notification> {
     return this.noticeService.update(
       updateNoticeInput.id,
       updateNoticeInput,
@@ -67,12 +67,12 @@ export class NoticeResolver {
     return this.noticeService.delete(id, user.id);
   }
 
-  @Mutation(() => Notice)
+  @Mutation(() => Notification)
   @UseGuards(GqlAuthGuard)
   async sendNotice(
     @Args('createNoticeInput') createNoticeInput: CreateNoticeInput,
     @CurrentUser() user: User,
-  ): Promise<Notice> {
+  ): Promise<Notification> {
     return this.noticeService.create({
       ...createNoticeInput,
       userId: user.id,
