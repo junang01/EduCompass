@@ -14,8 +14,8 @@ import { NoticeModule } from './apis/notice/notice.module';
 import { SubjectModule } from './apis/subject/subject.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import * as session from 'express-session';
 import { PassportModule } from '@nestjs/passport';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -47,6 +47,7 @@ import { PassportModule } from '@nestjs/passport';
       resolvers: { DateTime: GraphQLISODateTime },
     }),
     PassportModule.register({ session: true }),
+    ScheduleModule.forRoot(),
     UsersModule,
     AuthModule,
     BookModule,

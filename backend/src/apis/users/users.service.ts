@@ -108,4 +108,11 @@ export class UsersService implements IUserService {
       .where('user.deletedAt IS NOT NULL')
       .getMany();
   }
+  async isEmailTaken(email: string): Promise<boolean> {
+    const user = await this.userRepository.findOne({ where: { email } });
+    if (user) {
+      throw new ConflictException(`이메일이 이미 가입되어 있습니다.`);
+    }
+    return false; // 이메일이 없으면 false 반환
+  }
 }

@@ -8,10 +8,11 @@ import { UsersModule } from '../users/users.module';
 import { AuthService } from './auth.service';
 import { AuthResolver } from './auth.resolver';
 import { AuthToken } from './entities/auth-token.entity';
+import { EmailVaildation } from './entities/email-validation.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([AuthToken]),
+    TypeOrmModule.forFeature([AuthToken, EmailVaildation]),
     PassportModule.register({ 
       session: true,
       defaultStrategy: 'jwt' 

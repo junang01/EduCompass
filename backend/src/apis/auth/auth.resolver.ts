@@ -4,6 +4,7 @@ import { LoginInput } from './dto/login.input';
 import { AuthPayload } from './entities/auth.payload';
 import { UnauthorizedException, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { LoginUserInput } from '../users/dto/login-user.input';
 
 @Resolver()
 export class AuthResolver {
@@ -20,13 +21,23 @@ export class AuthResolver {
     return this.authService.login(user);
   }
 
-
-@Mutation(() => Boolean)
-@UseGuards(JwtAuthGuard)
-async logout() {
-  // 서버 측에서는 특별한 처리 없이 성공 응답만 반환
-  return true;
-}
-
+  @Mutation(() => Boolean)
+  @UseGuards(JwtAuthGuard)
+  async logout() {
+    // 서버 측에서는 특별한 처리 없이 성공 응답만 반환
+    return true;
+  }
   
+  @Mutation(() => String)
+  async sendAuthEmail(@Args('email') email: string): Promise<string> {
+    return this.authService.sendAuthTokenEmail(email);
+  }
+
+  @Mutation(() => String)
+  async checkToken(
+    @Args('inputToken') inputToken: string,
+    @Args('email') email: string,
+  ): Promise<string> {
+    return this.authService.checkToken({ inputToken, email });
+  }
 }
