@@ -16,6 +16,8 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PassportModule } from '@nestjs/passport';
 import { ScheduleModule } from '@nestjs/schedule';
+import { AdminUserSeed } from './apis/auth/seeds/admin-user.seed';
+import { User } from './apis/users/entities/user.entity';
 
 @Module({
   imports: [
@@ -48,6 +50,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     }),
     PassportModule.register({ session: true }),
     ScheduleModule.forRoot(),
+    TypeOrmModule.forFeature([User]),
     UsersModule,
     AuthModule,
     BookModule,
@@ -58,6 +61,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     SubjectModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, AdminUserSeed],
+  exports: [AdminUserSeed],
 })
 export class AppModule {}

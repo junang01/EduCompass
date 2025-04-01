@@ -4,7 +4,6 @@ import { LoginInput } from './dto/login.input';
 import { AuthPayload } from './entities/auth.payload';
 import { UnauthorizedException, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { LoginUserInput } from '../users/dto/login-user.input';
 
 @Resolver()
 export class AuthResolver {
@@ -40,4 +39,14 @@ export class AuthResolver {
   ): Promise<string> {
     return this.authService.checkToken({ inputToken, email });
   }
+  @Mutation(() => AuthPayload)
+async adminLogin(@Args('input') input: LoginInput) {
+  const user = await this.authService.validateAdminUser(input.email, input.password);
+  
+  if (!user) {
+    throw new UnauthorizedException('관리자 인증에 실패했습니다');
+  }
+  
+  return this.authService.login(user);
+}
 }
