@@ -21,6 +21,7 @@ document.addEventListener("DOMContentLoaded", function () {
     return /^(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(password);
   }
 
+  // 에러 발생
   function showError(input: HTMLElement, message: string): void {
     input.classList.add("input-error");
 
@@ -35,6 +36,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
+  // 에러 제거
   function clearError(input: HTMLElement): void {
     input.classList.remove("input-error");
 
@@ -49,6 +51,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
+  // 입력 폼 유효성 검사
   function validateForm(): boolean {
     let isValid = true;
 
@@ -119,6 +122,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   });
 
+  // 학년 선택 조정
   function updateGradeOptions(schoolName: string): void {
     const gradeSelect = formElements.grade;
     const lineSelect = formElements.line;
@@ -140,6 +144,7 @@ document.addEventListener("DOMContentLoaded", function () {
       gradeSelect.appendChild(option);
     }
 
+    // 계열 선택 조정
     if (isElementary) {
       lineSelect.value = "0";
       lineSelect.disabled = true;
@@ -153,6 +158,9 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
 
+
+
+  // 에러 빨간 박스 생성 및 메세지 표시
   window.updateGradeOptions = updateGradeOptions;
 
   formElements.school.addEventListener("input", () => {

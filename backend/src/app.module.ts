@@ -16,6 +16,8 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PassportModule } from '@nestjs/passport';
 import { ScheduleModule } from '@nestjs/schedule';
+import { Reflector } from '@nestjs/core';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 
 @Module({
   imports: [
@@ -58,6 +60,6 @@ import { ScheduleModule } from '@nestjs/schedule';
     SubjectModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, Reflector],
 })
 export class AppModule {}
