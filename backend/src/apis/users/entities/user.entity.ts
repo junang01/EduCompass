@@ -1,3 +1,4 @@
+// src/apis/users/entities/user.entity.ts
 import { ObjectType, Field, ID } from '@nestjs/graphql';
 import { Entity, Column, PrimaryGeneratedColumn, OneToMany, CreateDateColumn, UpdateDateColumn, DeleteDateColumn } from 'typeorm';
 import { StudyPlan } from '../../study-plan/entities/study-plan.entity';
@@ -48,8 +49,13 @@ export class User {
   updatedAt: Date;
 
   // 소프트 딜리트를 위한 컬럼 추가
+  @Field(() => Date, { nullable: true })
   @DeleteDateColumn()
   deletedAt: Date;
+  
+  @Field(() => String, { nullable: true }) // nullable: true로 변경
+  @Column({ default: 'USER', nullable: true }) // nullable: true로 변경
+  role: string; // 'USER' 또는 'ADMIN'
 
   // 관계 설정
   @OneToMany(() => StudyPlan, studyPlan => studyPlan.user)

@@ -1,6 +1,6 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Not, IsNull } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { User } from './entities/user.entity';
 import { IUser, IUserService } from './interfaces/user.interface';
@@ -82,11 +82,27 @@ export class UsersService implements IUserService {
     }
   }
 
-  async softDeleteUser(id: number): Promise<void> {
-    const result = await this.userRepository.softDelete(id);
-    
-    if (!result.affected) {
-      throw new NotFoundException(`User with ID ${id} not found`);
+  async softDeleteUser(id: number): Promise<boolean> {
+    try {
+      console.log(`회원 탈퇴 요청: ID ${id}`);
+      const result = await this.userRepository.softDelete(id);
+      console.log(`softDelete 결과:`, result);
+      
+      if (!result.affected) {
+        throw new NotFoundException(`User with ID ${id} not found`);
+      }
+      
+      // 삭제된 사용자 확인
+      const deletedUser = await this.userRepository.findOne({
+        where: { id },
+        withDeleted: true
+      });
+      console.log('삭제된 사용자 정보:', deletedUser);
+      
+      return true;
+    } catch (error) {
+      console.error('회원 탈퇴 처리 중 오류:', error);
+      throw new InternalServerErrorException('회원 탈퇴 처리 중 오류가 발생했습니다.');
     }
   }
 
@@ -102,12 +118,24 @@ export class UsersService implements IUserService {
     return this.userRepository.find({ withDeleted: true });
   }
 
-  async findOnlyDeleted(): Promise<User[]> {
-    return this.userRepository
-      .createQueryBuilder('user')
-      .where('user.deletedAt IS NOT NULL')
-      .getMany();
+  async deleteUser(userId: number): Promise<boolean> {
+    try {
+      await this.userRepository.softDelete(userId);
+      return true;
+    } catch (error) {
+      throw new InternalServerErrorException('회원 탈퇴 처리 중 오류가 발생했습니다.');
+    }
   }
+
+  async findOnlyDeleted(): Promise<User[]> {
+    return this.userRepository.find({
+      withDeleted: true,
+      where: {
+        deletedAt: Not(IsNull())
+      }
+    });
+  }
+  
   async isEmailTaken(email: string): Promise<boolean> {
     const user = await this.userRepository.findOne({ where: { email } });
     if (user) {

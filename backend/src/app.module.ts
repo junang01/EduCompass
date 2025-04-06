@@ -16,8 +16,13 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PassportModule } from '@nestjs/passport';
 import { ScheduleModule } from '@nestjs/schedule';
+<<<<<<< HEAD
 import { Reflector } from '@nestjs/core';
 import { APP_INTERCEPTOR } from '@nestjs/core';
+=======
+import { AdminUserSeed } from './apis/auth/seeds/admin-user.seed';
+import { User } from './apis/users/entities/user.entity';
+>>>>>>> 42412478778a695ce677f4e587bce4d3fdf2cbd3
 
 @Module({
   imports: [
@@ -50,6 +55,7 @@ import { APP_INTERCEPTOR } from '@nestjs/core';
     }),
     PassportModule.register({ session: true }),
     ScheduleModule.forRoot(),
+    TypeOrmModule.forFeature([User]),
     UsersModule,
     AuthModule,
     BookModule,
@@ -60,6 +66,11 @@ import { APP_INTERCEPTOR } from '@nestjs/core';
     SubjectModule,
   ],
   controllers: [AppController],
+<<<<<<< HEAD
   providers: [AppService, Reflector],
+=======
+  providers: [AppService, AdminUserSeed],
+  exports: [AdminUserSeed],
+>>>>>>> 42412478778a695ce677f4e587bce4d3fdf2cbd3
 })
 export class AppModule {}

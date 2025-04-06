@@ -178,9 +178,13 @@ export class AuthService {
     await this.cleanupExpiredTokens();
   }
   
-  // 또는 더 자주 실행하고 싶다면 (예: 매시간)
-  // @Cron(CronExpression.EVERY_HOUR)
-  // async handleTokenCleanup() {
-  //   await this.cleanupExpiredTokens();
-  // }
+  async validateAdminUser(email: string, password: string): Promise<SanitizedUser | null> {
+    const user = await this.usersService.findByEmail(email);
+    
+    if (user && await bcrypt.compare(password, user.password) && user.role === 'ADMIN') {
+      const { password: _, ...result } = user;
+      return result;
+    }
+    return null;
+  }
 }
