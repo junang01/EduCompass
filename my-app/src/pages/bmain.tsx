@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import "../css/logmainstyle.css";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faUser,
@@ -14,6 +14,18 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 
 const BmainPage = () => {
+  const [username, setUsername] = useState<string>("");
+
+  useEffect(() => {
+    const userData = localStorage.getItem("user");
+    if (userData) {
+      const user = JSON.parse(userData);
+      setUsername(user.name);
+    }
+  }, []);
+
+  const navigate = useNavigate();
+
   return (
     <>
       {/* 회원 가입 후 메인 화면 */}
@@ -25,7 +37,7 @@ const BmainPage = () => {
             </Link>
           </h2>
           <ul>
-            <li><Link to="/calendar">계획 캘린더</Link></li>
+            <li><Link to="/planStart">계획 캘린더</Link></li>
             <li><Link to="/makeplan">AI 계획 생성</Link></li>
             <li><Link to="/status">학습 현황</Link></li>
             <li><Link to="/books">교재 추천</Link></li>
@@ -33,10 +45,10 @@ const BmainPage = () => {
           </ul>
           <div className="log">
             <div className="login">
-              <Link to="/login">login</Link>
+              <Link to="/login">{username ? `${username}님` : "로그인"}</Link>
             </div>
             <div className="join">
-              <Link to="/join">join</Link>
+              <Link to="/">logout</Link>
             </div>
           </div>
         </nav>
@@ -85,7 +97,7 @@ const BmainPage = () => {
 
               <div
                 className="grid_log_makeplan"
-                onClick={() => (window.location.href = "bmain.tsx")}
+                onClick={() => navigate("/planStart")}
                 style={{ cursor: "pointer" }}
               >
                 <h4>

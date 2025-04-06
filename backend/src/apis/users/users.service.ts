@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, ConflictException, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Not, IsNull } from 'typeorm';
+import { Repository, Not, IsNull, FindOneOptions } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { User } from './entities/user.entity';
 import { IUser, IUserService } from './interfaces/user.interface';
@@ -17,8 +17,13 @@ export class UsersService implements IUserService {
     return this.userRepository.find();
   }
 
-  async findOne(id: number): Promise<User> {
-    const user = await this.userRepository.findOne({ where: { id } });
+  // ✅ 수정된 부분: options 인자 허용 및 withDeleted 대응
+  async findOne(id: number, options?: FindOneOptions<User>): Promise<User> {
+    const user = await this.userRepository.findOne({
+      where: { id },
+      ...(options || {}),
+    });
+
     if (!user) {
       throw new NotFoundException(`ID ${id}에 해당하는 사용자를 찾을 수 없습니다`);
     }

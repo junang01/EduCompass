@@ -16,13 +16,10 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PassportModule } from '@nestjs/passport';
 import { ScheduleModule } from '@nestjs/schedule';
-<<<<<<< HEAD
 import { Reflector } from '@nestjs/core';
-import { APP_INTERCEPTOR } from '@nestjs/core';
-=======
 import { AdminUserSeed } from './apis/auth/seeds/admin-user.seed';
 import { User } from './apis/users/entities/user.entity';
->>>>>>> 42412478778a695ce677f4e587bce4d3fdf2cbd3
+import { APP_INTERCEPTOR } from '@nestjs/core';
 
 @Module({
   imports: [
@@ -38,7 +35,7 @@ import { User } from './apis/users/entities/user.entity';
         password: configService.get('DB_PASSWORD') || '1234',
         database: configService.get('DB_DATABASE') || 'new_db_edu',
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: false,
+        synchronize: true,
       }),
     }),
     GraphQLModule.forRoot<ApolloDriverConfig>({
@@ -55,7 +52,6 @@ import { User } from './apis/users/entities/user.entity';
     }),
     PassportModule.register({ session: true }),
     ScheduleModule.forRoot(),
-    TypeOrmModule.forFeature([User]),
     UsersModule,
     AuthModule,
     BookModule,
@@ -64,13 +60,9 @@ import { User } from './apis/users/entities/user.entity';
     StudyStatusModule,
     NoticeModule,
     SubjectModule,
+    TypeOrmModule.forFeature([User]),
   ],
   controllers: [AppController],
-<<<<<<< HEAD
-  providers: [AppService, Reflector],
-=======
-  providers: [AppService, AdminUserSeed],
-  exports: [AdminUserSeed],
->>>>>>> 42412478778a695ce677f4e587bce4d3fdf2cbd3
+  providers: [AppService, Reflector, AdminUserSeed],
 })
 export class AppModule {}

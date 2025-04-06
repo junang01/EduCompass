@@ -29,16 +29,11 @@ async function bootstrap() {
     
   const document = SwaggerModule.createDocument(app as any, config);
   SwaggerModule.setup('api', app as any, document);
-  
-<<<<<<< HEAD
-  const port = 4001;
-=======
-  // 관리자 계정 시드 실행
+
   const adminUserSeed = app.get(AdminUserSeed);
   await adminUserSeed.seed();
   
-  const port = 3000;
->>>>>>> 42412478778a695ce677f4e587bce4d3fdf2cbd3
+  const port = 4000;
   await app.listen(port);
   console.log(`Application is running on: http://localhost:${port}`);
 }

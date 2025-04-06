@@ -25,21 +25,23 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   async validate(payload: any) {
     console.log('JwtStrategy.validate 호출됨');
     console.log('JWT 페이로드:', payload);
-    
+  
     try {
-      const user = await this.usersService.findOne(payload.sub);
+      // ✅ 삭제된 사용자 포함해서 조회
+      const user = await this.usersService.findOne(payload.sub, { withDeleted: true });
       console.log('조회된 사용자:', user);
-      
+  
       if (!user) {
         throw new UnauthorizedException('사용자를 찾을 수 없습니다');
       }
-      
+  
       return user;
     } catch (error) {
       console.error('JWT 검증 중 오류:', error.message);
       throw new UnauthorizedException('인증에 실패했습니다');
     }
   }
+  
 }
 
 @Injectable()
