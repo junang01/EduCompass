@@ -1,3 +1,4 @@
+// src/apis/users/users.service.ts
 import { Injectable, NotFoundException, ConflictException, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Not, IsNull } from 'typeorm';
@@ -127,6 +128,8 @@ export class UsersService implements IUserService {
     }
   }
 
+  
+
   async findOnlyDeleted(): Promise<User[]> {
     return this.userRepository.find({
       withDeleted: true,
@@ -141,6 +144,6 @@ export class UsersService implements IUserService {
     if (user) {
       throw new ConflictException(`이메일이 이미 가입되어 있습니다.`);
     }
-    return false; // 이메일이 없으면 false 반환
+    return false;
   }
 }

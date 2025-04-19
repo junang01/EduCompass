@@ -1,5 +1,5 @@
 import { InputType, Field, Int } from '@nestjs/graphql';
-import { IsNotEmpty, IsString, IsNumber } from 'class-validator';
+import { IsNotEmpty, IsString, IsNumber, IsOptional, IsBoolean } from 'class-validator';
 
 @InputType()
 export class CreateStudyPlanInput {
@@ -21,4 +21,27 @@ export class CreateStudyPlanInput {
   @IsNotEmpty()
   @IsNumber()
   subject_seq: number;
+
+  @Field()
+  @IsNotEmpty()
+  @IsString()
+  studyGoal: string;
+
+  @Field()
+  @IsNotEmpty()
+  @IsString()
+  studyTime: string;
+
+  @Field({ nullable: true })
+  @IsOptional()
+  startDate?: Date;
+
+  @Field()
+  @IsNotEmpty()
+  endDate: Date;
+
+  @Field()
+  @IsNotEmpty()
+  @IsBoolean()
+  statePlan: boolean;
 }

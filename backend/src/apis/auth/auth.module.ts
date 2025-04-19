@@ -9,29 +9,27 @@ import { AuthService } from './auth.service';
 import { AuthResolver } from './auth.resolver';
 import { AuthToken } from './entities/auth-token.entity';
 import { EmailVaildation } from './entities/email-validation.entity';
+import { TokenBlacklistService } from './interfaces/token-blacklist.service';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([AuthToken, EmailVaildation]),
-    PassportModule.register({ 
+    PassportModule.register({
       session: true,
-      defaultStrategy: 'jwt' 
+      defaultStrategy: 'jwt'
     }),
     JwtModule.registerAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        secret: configService.get('JWT_SECRET') || 'secure_dev_secret',
-        signOptions: { expiresIn: '1h' },
-      }),
+    imports: [ConfigModule],
+    inject: [ConfigService],
+    useFactory: (configService: ConfigService) => ({
+    secret: configService.get('JWT_SECRET') || 'secure_dev_secret',
+    signOptions: { expiresIn: '1h' },
     }),
-    UsersModule,
+    }),
+      UsersModule,
   ],
-  providers: [
-    AuthService,
-    AuthResolver,
-    JwtStrategy,
-  ],
-  exports: [AuthService, JwtModule],
+  providers: [AuthService,AuthResolver,JwtStrategy,TokenBlacklistService, JwtAuthGuard],
+exports: [AuthService, JwtModule, TokenBlacklistService],
 })
 export class AuthModule {}

@@ -18,22 +18,22 @@ export class StudyPlan {
   @Column()
   description: string;
 
-  @Field(() => String)
-  @Column({ type: 'date' })
+  @Field(() => Date)
+  @Column({ type: 'timestamp' })
   date: Date;
 
-  @Field(() => String)
+  @Field(() => Date, { nullable: true })
   @Column({ type: 'date', nullable: true })
   startDate: Date;
 
-  @Field(() => String)
-  @Column({ type: 'date' })
+  @Field(() => Date)
+  @Column({ type: 'date', default: () => 'CURRENT_DATE' }) // 기본값 설정
   endDate: Date;
 
   @Field()
-  @Column()
+  @Column({ default: '학습 목표를 설정해주세요' })
   studyGoal: string;
-
+  
   @Field()
   @Column()
   studyTime: string;

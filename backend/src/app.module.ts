@@ -18,6 +18,7 @@ import { PassportModule } from '@nestjs/passport';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AdminUserSeed } from './apis/auth/seeds/admin-user.seed';
 import { User } from './apis/users/entities/user.entity';
+import { DateScalar } from './commons/scalars/date.scalar';
 
 @Module({
   imports: [
@@ -41,12 +42,15 @@ import { User } from './apis/users/entities/user.entity';
       autoSchemaFile: true,
       playground: true,
       introspection: true,
+      // 명시적으로 context에 req 객체 추가
       context: ({ req }) => ({ req }),
       formatError: (error) => {
         console.error(error);
         return error;
       },
-      resolvers: { DateTime: GraphQLISODateTime },
+      resolvers: { 
+        DateTime: GraphQLISODateTime
+      },
     }),
     PassportModule.register({ session: true }),
     ScheduleModule.forRoot(),
@@ -61,7 +65,7 @@ import { User } from './apis/users/entities/user.entity';
     SubjectModule,
   ],
   controllers: [AppController],
-  providers: [AppService, AdminUserSeed],
+  providers: [AppService, AdminUserSeed, DateScalar],
   exports: [AdminUserSeed],
 })
 export class AppModule {}

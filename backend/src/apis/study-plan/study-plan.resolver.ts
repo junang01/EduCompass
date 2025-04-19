@@ -31,7 +31,7 @@ export class StudyPlansResolver {
   ): Promise<IStudyPlan> {
     const plan = await this.studyPlansService.findOne(id);
     if (plan.userId !== user.id) {
-      throw new Error('You are not authorized to access this study plan');
+      throw new Error('이 학습 계획에 접근할 권한이 없습니다');
     }
     return plan;
   }
@@ -42,10 +42,17 @@ export class StudyPlansResolver {
     @Args('createStudyPlanInput') createStudyPlanInput: CreateStudyPlanInput,
     @CurrentUser() user: User,
   ): Promise<IStudyPlan> {
-    const result = await this.studyPlansService.create({
-      ...createStudyPlanInput,
-      userId: user.id,
-    });
+    const studyPlan = new StudyPlan();
+    Object.assign(studyPlan, createStudyPlanInput);
+    studyPlan.endDate = studyPlan.endDate || new Date(); // 기본값 설정
+    studyPlan.userId = user.id;
+
+    // 날짜가 없으면 현재 시간으로 설정
+  studyPlan.date = studyPlan.date || new Date();
+  studyPlan.endDate = studyPlan.endDate || new Date();
+  studyPlan.userId = user.id;
+    
+    const result = await this.studyPlansService.create(studyPlan);
     return result;
   }
 
@@ -57,10 +64,10 @@ export class StudyPlansResolver {
   ): Promise<IStudyPlan> {
     const plan = await this.studyPlansService.findOne(updateStudyPlanInput.id);
     if (plan.userId !== user.id) {
-      throw new Error('You are not authorized to update this study plan');
+      throw new Error('이 학습 계획을 수정할 권한이 없습니다');
     }
     
-        const { id, ...updateData } = updateStudyPlanInput;
+    const { id, ...updateData } = updateStudyPlanInput;
     
     return this.studyPlansService.update(id, updateData);
   }
@@ -73,7 +80,7 @@ export class StudyPlansResolver {
   ): Promise<boolean> {
     const plan = await this.studyPlansService.findOne(id);
     if (plan.userId !== user.id) {
-      throw new Error('You are not authorized to delete this study plan');
+      throw new Error('이 학습 계획을 삭제할 권한이 없습니다');
     }
     return this.studyPlansService.delete(id);
   }
@@ -86,7 +93,7 @@ export class StudyPlansResolver {
   ): Promise<IStudyPlan> {
     const plan = await this.studyPlansService.findOne(id);
     if (plan.userId !== user.id) {
-      throw new Error('You are not authorized to complete this study plan');
+      throw new Error('이 학습 계획을 완료 처리할 권한이 없습니다');
     }
     return this.studyPlansService.complete(id);
   }
