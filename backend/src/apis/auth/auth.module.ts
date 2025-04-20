@@ -29,7 +29,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
     }),
       UsersModule,
   ],
-  providers: [AuthService,AuthResolver,JwtStrategy,TokenBlacklistService, JwtAuthGuard],
+  providers: [AuthService,AuthResolver,JwtStrategy,TokenBlacklistService,JwtAuthGuard],
 exports: [AuthService, JwtModule, TokenBlacklistService],
 })
 export class AuthModule {}
