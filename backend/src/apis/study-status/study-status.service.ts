@@ -127,6 +127,7 @@ export class StudyStatusService implements IStudyStatusService {
     const totalIncompleteRate = stats.reduce((sum, stat) => sum + stat.incompleteRate, 0) / stats.length;
     
     
+    
     const subjectStats = await Promise.all(
       stats.map(async (stat) => {
         const subject = await this.subjectRepository.findOne({
@@ -140,8 +141,37 @@ export class StudyStatusService implements IStudyStatusService {
         };
       })
     );
+  }
+    async getStatsByPeriod(start: string, end: string, userId: number): Promise<OverallStatsResponse> {
+      const stats = await this.studyStatusRepository
+        .createQueryBuilder('studyStatus')
+        .where('studyStatus.userId = :userId', { userId })
+        .andWhere('studyStatus.createdAt BETWEEN :start AND :end', { start, end })
+        .getMany();
     
+      if (stats.length === 0) {
+        return {
+          completionRate: 0,
+          postponeRate: 0,
+          incompleteRate: 0,
+          subjectStats: []
+        };
+      }
     
+      const subjectStats = await Promise.all(stats.map(async (stat) => {
+        const subject = await this.subjectRepository.findOne({ where: { id: stat.subject_seq } });
+        return {
+          subject: subject?.subjectName || 'Unknown',
+          completionRate: stat.completionRate,
+          postponeRate: stat.postponeRate,
+          incompleteRate: stat.incompleteRate
+        };
+      }));
+    
+      const totalCompletionRate = stats.reduce((sum, s) => sum + s.completionRate, 0) / stats.length;
+      const totalPostponeRate = stats.reduce((sum, s) => sum + s.postponeRate, 0) / stats.length;
+      const totalIncompleteRate = stats.reduce((sum, s) => sum + s.incompleteRate, 0) / stats.length;
+  
     return {
       completionRate: totalCompletionRate,
       postponeRate: totalPostponeRate,

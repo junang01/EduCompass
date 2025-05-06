@@ -105,11 +105,21 @@ export class UsersResolver {
     }
     
     try {
-      return this.usersService.softDeleteUser(user.id);
+      // 통합된 delete 메서드 사용
+      return this.usersService.delete(user.id);
     } catch (error) {
       console.error('회원 탈퇴 처리 중 오류:', error);
       throw error;
     }
+  }
+
+ @Mutation(() => User)
+ @UseGuards(JwtAuthGuard)
+  async updateUserTheme(
+   @Args('theme') theme: string,
+   @CurrentUser() user: User
+ ): Promise<User> {
+   return this.usersService.updateTheme(user.id, theme);
   }
 
   /**

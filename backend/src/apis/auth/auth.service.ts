@@ -1,17 +1,19 @@
 // src/apis/auth/auth.service.ts
-import { Injectable, InternalServerErrorException,UnauthorizedException  } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, UnauthorizedException, ConflictException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import { User } from '../users/entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThan } from 'typeorm';
 import { EmailVaildation } from './entities/email-validation.entity';
+import { TokenBlacklist } from './entities/token-blacklist.entity'; // 토큰 블랙리스트 엔티티 추가
 import { IAuthCheckToken, IAuthGetToken, IAuthSendTemplateToEmail } from './interfaces/auth-getToken.interface';
 import * as bcrypt from 'bcrypt';
 import * as nodemailer from 'nodemailer';
 import { SentMessageInfo } from 'nodemailer';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
+import * as crypto from 'crypto';
 
 /**
  * 비밀번호를 제외한 사용자 정보 타입
@@ -30,6 +32,8 @@ export class AuthService {
     private readonly configService: ConfigService,
     @InjectRepository(EmailVaildation)
     private readonly emailValidationRepository: Repository<EmailVaildation>,
+    @InjectRepository(TokenBlacklist)
+    private readonly tokenBlacklistRepository: Repository<TokenBlacklist>, // 토큰 블랙리스트 리포지토리 주입
   ) {}
 
   /**
@@ -39,13 +43,17 @@ export class AuthService {
    * @returns 비밀번호를 제외한 사용자 정보 또는 null
    */
   async validateUser(email: string, password: string): Promise<SanitizedUser | null> {
-    const user = await this.usersService.findByEmail(email);
-    
-    if (user && await bcrypt.compare(password, user.password)) {
-      const { password: _, ...result } = user;
-      return result;
+    try {
+      const user = await this.usersService.findByEmail(email, false);
+      
+      if (user && await bcrypt.compare(password, user.password)) {
+        const { password: _, ...result } = user;
+        return result;
+      }
+      return null;
+    } catch (error) {
+      return null;
     }
-    return null;
   }
 
   /**
@@ -78,7 +86,6 @@ export class AuthService {
     };
   }
   
-
   /**
    * 로그아웃 처리
    * @returns 로그아웃 성공 여부
@@ -88,12 +95,31 @@ export class AuthService {
   }
 
   /**
-   * 6자리 인증 토큰 생성 및 만료 시간 설정
+   * 유니크한 6자리 인증 토큰 생성 및 만료 시간 설정
    * @returns 생성된 토큰과 만료 시간
    */
-  getToken(): IAuthGetToken {
-    // 6자리 랜덤 숫자 생성 (000000 ~ 999999)
-    const token = String(Math.floor(Math.random() * 1000000)).padStart(6, '0');
+  async getToken(): Promise<IAuthGetToken> {
+    // 이미 존재하는 토큰인지 확인하기 위한 함수
+    const isTokenUnique = async (token: string): Promise<boolean> => {
+      const existingToken = await this.emailValidationRepository.findOne({
+        where: { token }
+      });
+      return !existingToken;
+    };
+
+    let token: string;
+    let isUnique = false;
+    
+    // 유니크한 토큰이 생성될 때까지 반복
+    while (!isUnique) {
+      // crypto 모듈을 사용하여 더 안전한 난수 생성
+      const randomNum = crypto.randomInt(0, 1000000);
+      token = String(randomNum).padStart(6, '0');
+      
+      // 생성된 토큰이 유니크한지 확인
+      isUnique = await isTokenUnique(token);
+    }
+    
     // 현재 시간 + 3분(180,000ms)으로 만료 시간 설정
     const expiry = Date.now() + 3 * 60 * 1000;
     return { token, expiry };
@@ -128,22 +154,35 @@ export class AuthService {
    */
   async sendAuthTokenEmail(email: string): Promise<string> {
     // 이메일 중복 확인
-    this.usersService.isEmailTaken(email);
-    // 인증 토큰 생성
-    const { token, expiry } = this.getToken();
+    await this.checkEmailAvailability(email);
+    
+    // 인증 토큰 생성 (비동기 함수로 변경됨)
+    const { token, expiry } = await this.getToken();
+    
     // 생성된 토큰 정보 저장
     await this.emailValidationRepository.save({
       email,
       token,
       expiry,
     });
+    
     // 이메일 템플릿 생성
     const template = this.makeTemplate(token);
 
     // 이메일 발송
     await this.sendTemplateToEmail({ email, template });
-
     return '이메일 발송이 완료되었습니다.';
+  }
+
+  /**
+   * 이메일 중복 확인
+   * @param email 확인할 이메일
+   */
+  private async checkEmailAvailability(email: string): Promise<void> {
+    const user = await this.usersService.findByEmail(email, false);
+    if (user) {
+      throw new ConflictException('이미 존재하는 이메일입니다');
+    }
   }
 
   /**
@@ -247,8 +286,19 @@ export class AuthService {
     }
   }
 
+  /**
+   * 리프레시 토큰을 사용하여 새 액세스 토큰과 리프레시 토큰 발급 (토큰 로테이션)
+   * @param refreshToken 리프레시 토큰
+   * @returns 새 액세스 토큰, 새 리프레시 토큰, 사용자 정보
+   */
   async refreshAccessToken(refreshToken: string) {
     try {
+      // 리프레시 토큰이 블랙리스트에 있는지 확인
+      const isBlacklisted = await this.isTokenBlacklisted(refreshToken);
+      if (isBlacklisted) {
+        throw new UnauthorizedException('이미 사용된 리프레시 토큰입니다');
+      }
+
       // 리프레시 토큰 검증
       const payload = this.jwtService.verify(refreshToken, {
         secret: this.configService.get('JWT_REFRESH_SECRET')
@@ -261,10 +311,26 @@ export class AuthService {
         throw new UnauthorizedException('사용자를 찾을 수 없습니다');
       }
       
-      // 새 액세스 토큰 발급
+      // 토큰 블랙리스트에 현재 리프레시 토큰 추가
+      await this.blacklistRefreshToken(refreshToken);
+      
+      // 새 페이로드 생성
       const newPayload = { email: user.email, sub: user.id };
+      
+      // 새 액세스 토큰 발급
+      const accessToken = this.jwtService.sign(newPayload, {
+        expiresIn: '15m'
+      });
+      
+      // 새 리프레시 토큰 발급 (토큰 로테이션)
+      const newRefreshToken = this.jwtService.sign(newPayload, {
+        expiresIn: '7d',
+        secret: this.configService.get('JWT_REFRESH_SECRET')
+      });
+      
       return {
-        accessToken: this.jwtService.sign(newPayload),
+        accessToken,
+        refreshToken: newRefreshToken, // 새 리프레시 토큰 반환
         user: {
           id: user.id,
           email: user.email,
@@ -272,10 +338,57 @@ export class AuthService {
         }
       };
     } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
       throw new UnauthorizedException('유효하지 않은 리프레시 토큰입니다');
     }
   }
-  
+
+  /**
+   * 리프레시 토큰을 블랙리스트에 추가
+   * @param token 블랙리스트에 추가할 리프레시 토큰
+   */
+  async blacklistRefreshToken(token: string): Promise<void> {
+    // 토큰에서 만료 시간 추출
+    const decoded = this.jwtService.decode(token);
+    const expiryDate = new Date(decoded.exp * 1000); // 초를 밀리초로 변환
+    
+    // 블랙리스트에 토큰 추가
+    await this.tokenBlacklistRepository.save({
+      token,
+      expiryDate
+    });
+  }
+
+  /**
+   * 토큰이 블랙리스트에 있는지 확인
+   * @param token 확인할 토큰
+   * @returns 블랙리스트 포함 여부
+   */
+  async isTokenBlacklisted(token: string): Promise<boolean> {
+    const blacklistedToken = await this.tokenBlacklistRepository.findOne({
+      where: { token }
+    });
+    return !!blacklistedToken;
+  }
+
+  /**
+   * 만료된 블랙리스트 토큰 정리
+   * 정기적으로 실행되어 만료된 토큰을 블랙리스트에서 제거
+   */
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  async cleanupBlacklistedTokens(): Promise<void> {
+    const now = new Date();
+    try {
+      await this.tokenBlacklistRepository.delete({
+        expiryDate: LessThan(now)
+      });
+      console.log('만료된 블랙리스트 토큰이 성공적으로 정리되었습니다.');
+    } catch (error) {
+      console.error('블랙리스트 토큰 정리 중 오류 발생:', error);
+    }
+  }
 
   /**
    * 매일 자정에 실행되는 만료 토큰 정리 작업
@@ -292,13 +405,17 @@ export class AuthService {
    * @returns 비밀번호를 제외한 관리자 정보 또는 null
    */
   async validateAdminUser(email: string, password: string): Promise<SanitizedUser | null> {
-    const user = await this.usersService.findByEmail(email);
-    
-    // 비밀번호 일치 및 관리자 권한 확인
-    if (user && await bcrypt.compare(password, user.password) && user.role === 'ADMIN') {
-      const { password: _, ...result } = user;
-      return result;
+    try {
+      const user = await this.usersService.findByEmail(email, false);
+      
+      // 비밀번호 일치 및 관리자 권한 확인
+      if (user && await bcrypt.compare(password, user.password) && user.role === 'ADMIN') {
+        const { password: _, ...result } = user;
+        return result;
+      }
+      return null;
+    } catch (error) {
+      return null;
     }
-    return null;
   }
 }

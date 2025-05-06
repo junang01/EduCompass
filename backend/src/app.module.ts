@@ -19,6 +19,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { AdminUserSeed } from './apis/auth/seeds/admin-user.seed';
 import { User } from './apis/users/entities/user.entity';
 import { DateScalar } from './commons/scalars/date.scalar';
+import { TokenBlacklist } from './apis/auth/entities/token-blacklist.entity';
 
 @Module({
   imports: [
@@ -54,7 +55,7 @@ import { DateScalar } from './commons/scalars/date.scalar';
     }),
     PassportModule.register({ session: true }),
     ScheduleModule.forRoot(),
-    TypeOrmModule.forFeature([User]),
+    TypeOrmModule.forFeature([User, TokenBlacklist]),
     UsersModule,
     AuthModule,
     BookModule,

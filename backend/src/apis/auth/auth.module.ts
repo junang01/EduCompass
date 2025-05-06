@@ -7,6 +7,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { UsersModule } from '../users/users.module';
 import { AuthService } from './auth.service';
 import { AuthResolver } from './auth.resolver';
+import { TokenBlacklist } from './entities/token-blacklist.entity'; // 토큰 블랙리스트 엔티티 추가
 import { AuthToken } from './entities/auth-token.entity';
 import { EmailVaildation } from './entities/email-validation.entity';
 import { TokenBlacklistService } from './interfaces/token-blacklist.service';
@@ -14,7 +15,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([AuthToken, EmailVaildation]),
+    TypeOrmModule.forFeature([AuthToken, EmailVaildation, TokenBlacklist]),
     PassportModule.register({
       session: true,
       defaultStrategy: 'jwt'

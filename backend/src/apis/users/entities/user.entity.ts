@@ -41,12 +41,25 @@ export class User {
   receiverEmail: string;
 
   @Field()
-  @CreateDateColumn({ name: 'user_create_date' })
+  @CreateDateColumn({ 
+    name: 'user_create_date',
+    type: 'timestamp',
+    default: () => 'CURRENT_TIMESTAMP' 
+  })
   createdAt: Date;
-
+  
   @Field()
-  @UpdateDateColumn({ name: 'user_mod_date' })
+  @UpdateDateColumn({ 
+    name: 'user_mod_date',
+    type: 'timestamp',
+    default: () => 'CURRENT_TIMESTAMP' 
+  })
   updatedAt: Date;
+  
+
+  @Field({ defaultValue: 'light' })
+  @Column({ default: 'light' })
+  theme: string;
 
   // 소프트 딜리트를 위한 컬럼 추가
   @Field(() => Date, { nullable: true })

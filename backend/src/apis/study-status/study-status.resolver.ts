@@ -79,6 +79,16 @@ export class StudyStatusResolver {
 
   @Query(() => OverallStatsResponse)
   @UseGuards(GqlAuthGuard)
+  async getStatsByPeriod(
+    @Args('start') start: string,
+    @Args('end') end: string,
+    @CurrentUser() user: User,
+  ): Promise<OverallStatsResponse> {
+    return this.studyStatusService.getStatsByPeriod(start, end, user.id);
+  }
+
+  @Query(() => OverallStatsResponse)
+  @UseGuards(GqlAuthGuard)
   async overallStats(
     @CurrentUser() user: User,
   ): Promise<OverallStatsResponse> {
