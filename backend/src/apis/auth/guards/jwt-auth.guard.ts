@@ -18,7 +18,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
   }
 
   /**
-   * 인증 활성화 여부 확인
+   * 인증 활성화 여부 확인s
    * @param context 실행 컨텍스트
    * @returns 인증 성공 여부
    */
