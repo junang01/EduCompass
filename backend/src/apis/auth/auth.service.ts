@@ -66,7 +66,7 @@ export class AuthService {
     
     // 액세스 토큰 생성 (짧은 유효기간)
     const accessToken = this.jwtService.sign(payload, {
-      expiresIn: '15m' // 15분
+      expiresIn: '15m' // 15분분
     });
     
     // 리프레시 토큰 생성 (긴 유효기간)
@@ -90,9 +90,30 @@ export class AuthService {
    * 로그아웃 처리
    * @returns 로그아웃 성공 여부
    */
-  async logout() {
+  /**
+ * 로그아웃 처리 - 현재 사용 중인 액세스 토큰과 리프레시 토큰을 블랙리스트에 추가
+ * @param accessToken 현재 사용 중인 액세스 토큰
+ * @param refreshToken 현재 사용 중인 리프레시 토큰
+ * @returns 로그아웃 성공 여부
+ */
+async logout(accessToken: string, refreshToken: string): Promise<boolean> {
+  try {
+    // 액세스 토큰 블랙리스트에 추가
+    if (accessToken) {
+      await this.blacklistRefreshToken(accessToken);
+    }
+    
+    // 리프레시 토큰 블랙리스트에 추가
+    if (refreshToken) {
+      await this.blacklistRefreshToken(refreshToken);
+    }
+    
     return true;
+  } catch (error) {
+    console.error('로그아웃 처리 중 오류 발생:', error);
+    return false;
   }
+}
 
   /**
    * 유니크한 6자리 인증 토큰 생성 및 만료 시간 설정

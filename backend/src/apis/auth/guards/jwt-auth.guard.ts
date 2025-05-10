@@ -2,19 +2,19 @@
 import { Injectable, ExecutionContext, UnauthorizedException, Logger } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { GqlExecutionContext } from '@nestjs/graphql';
-import { TokenBlacklistService } from '../interfaces/token-blacklist.service';
+import { AuthService } from '../auth.service';
 
 /**
  * JWT 인증을 처리하는 가드
- * GraphQL 요청에서 JWT 토큰을 검증하고 블랙리스트 확인
+ * GraphQL 및 REST API 요청에서 JWT 토큰을 검증하고 블랙리스트 확인
  */
 @Injectable()
 export class JwtAuthGuard extends AuthGuard('jwt') {
   private readonly logger = new Logger(JwtAuthGuard.name);
 
-  constructor(private readonly tokenBlacklistService: TokenBlacklistService) {
+  constructor(private readonly authService: AuthService) {
     super();
-    this.logger.debug(`TokenBlacklistService 주입 상태: ${!!this.tokenBlacklistService}`);
+    this.logger.debug(`AuthService 주입 상태: ${!!this.authService}`);
   }
 
   /**
@@ -22,10 +22,35 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
    * @param context 실행 컨텍스트
    * @returns 인증 성공 여부
    */
-  canActivate(context: ExecutionContext) {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     this.logger.debug('JwtAuthGuard.canActivate 호출됨');
-    // 기본 검증 로직 실행
-    return super.canActivate(context);
+    
+    // 기본 JWT 검증
+    const canActivate = await super.canActivate(context);
+    
+    if (!canActivate) {
+      return false;
+    }
+    
+    // 요청에서 토큰 추출
+    const request = this.getRequest(context);
+    const token = this.extractTokenFromHeader(request);
+    
+    if (!token) {
+      throw new UnauthorizedException('토큰이 없습니다');
+    }
+    
+    // 토큰이 블랙리스트에 있는지 확인
+    if (this.authService) {
+      const isBlacklisted = await this.authService.isTokenBlacklisted(token);
+      if (isBlacklisted) {
+        throw new UnauthorizedException('유효하지 않은 토큰입니다');
+      }
+    } else {
+      this.logger.warn('authService가 정의되지 않았습니다');
+    }
+    
+    return true;
   }
 
   /**
@@ -33,7 +58,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
    * @param context 실행 컨텍스트
    * @returns HTTP 요청 객체
    */
-  getRequest(context: ExecutionContext) {
+  getRequest(context: ExecutionContext): any {
     // 컨텍스트 타입 확인
     if (context.getType() === 'http') {
       // REST API 요청인 경우
@@ -55,27 +80,14 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
    * @param context 실행 컨텍스트
    * @returns 인증된 사용자 객체
    */
-  handleRequest(err, user, info, context) {
+  handleRequest(err: any, user: any, info: any, context: ExecutionContext): any {
     this.logger.debug(`handleRequest 호출됨: user=${JSON.stringify(user)}, err=${err}`);
     
     if (err || !user) {
       this.logger.error(`인증 실패: ${err?.message || '사용자 정보 없음'}`);
       throw err || new UnauthorizedException('인증에 실패했습니다');
     }
-  
-    // 컨텍스트가 있고 tokenBlacklistService가 정의되어 있는 경우에만 블랙리스트 확인
-    if (context && this.tokenBlacklistService) {
-      const req = this.getRequest(context);
-      const token = this.extractTokenFromHeader(req);
-  
-      // 토큰이 블랙리스트에 있는지 확인
-      if (token && this.tokenBlacklistService.isBlacklisted(token)) {
-        throw new UnauthorizedException('이미 로그아웃된 토큰입니다');
-      }
-    } else {
-      this.logger.warn('tokenBlacklistService가 정의되지 않았거나 컨텍스트가 없습니다');
-    }
-  
+    
     return user;
   }
 
@@ -84,7 +96,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
    * @param request HTTP 요청 객체
    * @returns Bearer 토큰 문자열 또는 undefined
    */
-  private extractTokenFromHeader(request): string | undefined {
+  private extractTokenFromHeader(request: any): string | undefined {
     // 요청 객체가 없는 경우 처리
     if (!request || !request.headers) {
       this.logger.error('요청 객체 또는 헤더가 없습니다');

@@ -1,5 +1,5 @@
 // src/apis/auth/auth.resolver.ts
-import { Resolver, Mutation, Args, Context, Query } from '@nestjs/graphql';
+import { Resolver, Mutation, Args, Context, Query, ObjectType, Field } from '@nestjs/graphql';
 import { AuthService } from './auth.service';
 import { LoginInput } from './dto/login.input';
 import { AuthPayload } from './entities/auth.payload';
@@ -8,6 +8,21 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { TokenBlacklistService } from './interfaces/token-blacklist.service';
 import { TokenInfo } from './entities/token-info.entity';
 import { JwtService } from '@nestjs/jwt';
+
+@ObjectType()
+export class AuthStatus {
+  @Field()
+  isAuthenticated: boolean;
+  
+  @Field()
+  message: string;
+  
+  @Field()
+  tokenStatus: string;
+  
+  @Field({ nullable: true })
+  expiresIn?: number;
+}
 
 /**
  * 인증 관련 GraphQL 리졸버
@@ -66,6 +81,75 @@ export class AuthResolver {
       return decoded.exp < currentTime;
     } catch (error) {
       return true; // 디코딩 오류 시 만료된 것으로 간주
+    }
+  }
+
+  /**
+   * 현재 인증 상태 확인
+   * 액세스 토큰 유효성 및 만료 여부 확인
+   * @param context GraphQL 컨텍스트 (요청 정보 포함)
+   * @returns 인증 상태 정보
+   */
+  @Query(() => AuthStatus)
+  async checkAuthStatus(@Context() context) {
+    const authHeader = context.req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return { 
+        isAuthenticated: false, 
+        message: '인증 토큰이 없습니다',
+        tokenStatus: 'MISSING'
+      };
+    }
+    
+    const token = authHeader.substring(7);
+    try {
+      // 토큰 검증
+      const decoded = this.jwtService.verify(token);
+      
+      // 블랙리스트 확인
+      const isBlacklisted = await this.tokenBlacklistService.isBlacklisted(token);
+      if (isBlacklisted) {
+        return { 
+          isAuthenticated: false, 
+          message: '로그아웃된 토큰입니다',
+          tokenStatus: 'BLACKLISTED'
+        };
+      }
+      
+      // 만료 시간 확인
+      const currentTime = Math.floor(Date.now() / 1000);
+      const timeToExpire = decoded.exp - currentTime;
+      
+      // 만료 5분 전인지 확인
+      if (timeToExpire < 300 && timeToExpire > 0) {
+        return { 
+          isAuthenticated: true, 
+          message: '토큰이 곧 만료됩니다',
+          tokenStatus: 'EXPIRING_SOON',
+          expiresIn: timeToExpire
+        };
+      }
+      
+      return { 
+        isAuthenticated: true, 
+        message: '인증 상태가 유효합니다',
+        tokenStatus: 'VALID',
+        expiresIn: timeToExpire
+      };
+    } catch (error) {
+      if (error.name === 'TokenExpiredError') {
+        return { 
+          isAuthenticated: false, 
+          message: '인증 토큰이 만료되었습니다',
+          tokenStatus: 'EXPIRED'
+        };
+      }
+      
+      return { 
+        isAuthenticated: false, 
+        message: '유효하지 않은 토큰입니다',
+        tokenStatus: 'INVALID'
+      };
     }
   }
 
