@@ -3,7 +3,9 @@ import { IsNotEmpty, IsNumber, IsOptional, Min, Max } from 'class-validator';
 import { CreateStudyStatusInput } from './create-study-status.input';
 
 @InputType()
-export class UpdateStudyStatusInput extends PartialType(CreateStudyStatusInput) {
+export class UpdateStudyStatusInput extends PartialType(
+  CreateStudyStatusInput,
+) {
   @Field(() => ID)
   @IsNotEmpty()
   @IsNumber()

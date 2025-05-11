@@ -1,3 +1,5 @@
+import { CreateStudyPlanInput } from '../dto/create-study-plan.input';
+
 export interface IStudyPlan {
   id?: number;
   title: string;
@@ -21,3 +23,10 @@ export interface IStudyPlanService {
   getCalendarData(userId: number): Promise<any[]>;
   findBySubject(subject_seq: number, userId: number): Promise<IStudyPlan[]>;
 }
+
+
+export interface ICreateStudyPlanService {
+  userId: number;
+  createStudyPlanInput: CreateStudyPlanInput;
+}
+

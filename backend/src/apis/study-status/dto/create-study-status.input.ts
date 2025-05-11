@@ -27,7 +27,8 @@ export class CreateStudyStatusInput {
   @Field(() => Int)
   @IsNotEmpty()
   @IsNumber()
-  subject_seq: number; 
+
+  subject_seq: number;
 
   @Field(() => Int)
   @IsNotEmpty()

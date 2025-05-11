@@ -38,4 +38,15 @@ export class SubjectService implements ISubjectService {
     const result = await this.subjectRepository.delete(id);
     return result.affected > 0;
   }
+
+  async findOrCreateByName(subjectName: string): Promise<Subject> {
+    let subject = await this.subjectRepository.findOne({ where: { subjectName } });
+
+    if (!subject) {
+      subject = this.subjectRepository.create({ subjectName });
+      subject = await this.subjectRepository.save(subject);
+    }
+
+    return subject;
+  }
 }

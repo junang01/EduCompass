@@ -1,47 +1,92 @@
 import { InputType, Field, Int } from '@nestjs/graphql';
-import { IsNotEmpty, IsString, IsNumber, IsOptional, IsBoolean } from 'class-validator';
+import { IsNotEmpty, IsString, IsNumber } from 'class-validator';
 
 @InputType()
 export class CreateStudyPlanInput {
-  @Field()
-  @IsNotEmpty()
-  @IsString()
-  title: string;
+  @Field(() => [AvailableStudyScheduleInput])
+  availableStudyScheduleInput: AvailableStudyScheduleInput[];
 
-  @Field()
-  @IsNotEmpty()
-  @IsString()
-  description: string;
+  @Field(() => String)
+  studyPeriod: string;
 
-  @Field()
-  @IsNotEmpty()
-  date: Date;
+  @Field(() => [ExamContentInput])
+  examContentInput: ExamContentInput[];
 
-  @Field(() => Int)
-  @IsNotEmpty()
-  @IsNumber()
-  subject_seq: number;
+  @Field(() => [StudyBookInput])
+  studyBookInput: StudyBookInput[];
 
-  @Field()
-  @IsNotEmpty()
-  @IsString()
-  studyGoal: string;
+  @Field(() => String)
+  studyLevel: string;
 
-  @Field()
-  @IsNotEmpty()
-  @IsString()
-  studyTime: string;
+  @Field(() => [SubjecctScoreInput])
+  lastSemesterScoreInput: SubjecctScoreInput[];
 
-  @Field({ nullable: true })
-  @IsOptional()
-  startDate?: Date;
+  @Field(() => [SubjecctScoreInput])
+  mockExamScoreInput: SubjecctScoreInput[];
 
-  @Field()
-  @IsNotEmpty()
-  endDate: Date;
+  @Field(() => String)
+  learningStyle: string;
 
-  @Field()
-  @IsNotEmpty()
-  @IsBoolean()
-  statePlan: boolean;
+  @Field(() => [String])
+  reviewDays: string[];
+
+  @Field(() => [String])
+  missedPlanDay: string[];
+}
+
+@InputType()
+export class AvailableStudyScheduleInput {
+  @Field(() => String)
+  day: string;
+
+  @Field(() => [TimeRangeInput])
+  timeRanges: TimeRangeInput[];
+}
+
+@InputType()
+export class ExamContentInput {
+  @Field(() => String)
+  examcontent: string;
+
+  @Field(() => String)
+  examStartDay: string;
+
+  @Field(() => String)
+  examEndDay: string;
+
+  @Field(() => String)
+  examGoal: string;
+}
+
+@InputType()
+export class StudyBookInput {
+  @Field(() => String)
+  bookName: string;
+
+  @Field(() => String)
+  subject: string;
+
+  @Field(() => String)
+  bookIndex: string;
+
+  @Field(() => String)
+  bookReview: string;
+}
+
+@InputType()
+export class SubjecctScoreInput {
+  @Field(() => String)
+  subject: string;
+
+  @Field(() => String)
+  score: string;
+}
+
+@InputType()
+export class TimeRangeInput {
+  @Field(() => String)
+  startTime: string;
+
+  @Field(() => String)
+  endTime: string;
 }

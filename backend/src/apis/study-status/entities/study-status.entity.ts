@@ -1,5 +1,11 @@
 import { ObjectType, Field, ID, Float } from '@nestjs/graphql';
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { StudyPlan } from '../../study-plan/entities/study-plan.entity';
 import { Subject } from '../../subject/entities/subject.entity';
@@ -28,7 +34,7 @@ export class StudyStatus {
   subject_seq: number;
 
   @Field(() => Subject)
-  @ManyToOne(() => Subject, subject => subject.studyStatuses)
+  @ManyToOne(() => Subject, (subject) => subject.studyStatuses)
   @JoinColumn({ name: 'subject_seq' })
   subject: Subject;
 
@@ -55,6 +61,10 @@ export class StudyStatus {
   createdAt: Date;
 
   @Field()
-  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP' })
+  @Column({
+    type: 'timestamp',
+    default: () => 'CURRENT_TIMESTAMP',
+    onUpdate: 'CURRENT_TIMESTAMP',
+  })
   updatedAt: Date;
 }

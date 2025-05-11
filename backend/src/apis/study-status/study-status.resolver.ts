@@ -35,7 +35,8 @@ export class StudyStatusResolver {
   @Mutation(() => StudyStatus)
   @UseGuards(GqlAuthGuard)
   async createStudyStatus(
-    @Args('createStudyStatusInput') createStudyStatusInput: CreateStudyStatusInput,
+    @Args('createStudyStatusInput')
+    createStudyStatusInput: CreateStudyStatusInput,
     @CurrentUser() user: User,
   ): Promise<StudyStatus> {
     const result = await this.studyStatusService.create({
@@ -44,18 +45,20 @@ export class StudyStatusResolver {
     });
     return result;
   }
-  
 
   @Mutation(() => StudyStatus)
   @UseGuards(GqlAuthGuard)
   async updateStudyStatus(
-    @Args('updateStudyStatusInput') updateStudyStatusInput: UpdateStudyStatusInput,
+
+    @Args('updateStudyStatusInput')
+    updateStudyStatusInput: UpdateStudyStatusInput,
+
     @CurrentUser() user: User,
   ): Promise<StudyStatus> {
     return this.studyStatusService.update(
       updateStudyStatusInput.id,
       updateStudyStatusInput,
-      user.id
+      user.id,
     );
   }
 
@@ -74,24 +77,17 @@ export class StudyStatusResolver {
     @Args('subject') subject: string,
     @CurrentUser() user: User,
   ): Promise<StudyStatus> {
-    return this.studyStatusService.getSubjectStats(user.id, subject) as unknown as StudyStatus;
+
+    return this.studyStatusService.getSubjectStats(
+      user.id,
+      subject,
+    ) as unknown as StudyStatus;
+
   }
 
   @Query(() => OverallStatsResponse)
   @UseGuards(GqlAuthGuard)
-  async getStatsByPeriod(
-    @Args('start') start: string,
-    @Args('end') end: string,
-    @CurrentUser() user: User,
-  ): Promise<OverallStatsResponse> {
-    return this.studyStatusService.getStatsByPeriod(start, end, user.id);
-  }
-
-  @Query(() => OverallStatsResponse)
-  @UseGuards(GqlAuthGuard)
-  async overallStats(
-    @CurrentUser() user: User,
-  ): Promise<OverallStatsResponse> {
+  async overallStats(@CurrentUser() user: User): Promise<OverallStatsResponse> {
     return this.studyStatusService.getOverallStats(user.id);
   }
 }
