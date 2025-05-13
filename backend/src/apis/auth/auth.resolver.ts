@@ -3,10 +3,12 @@ import { Resolver, Mutation, Args, Context, Query, ObjectType, Field } from '@ne
 import { AuthService } from './auth.service';
 import { LoginInput } from './dto/login.input';
 import { AuthPayload } from './entities/auth.payload';
-import { UnauthorizedException, UseGuards, Logger } from '@nestjs/common';
+import { UnauthorizedException, UseGuards, Logger, ForbiddenException } from '@nestjs/common';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { TokenInfo } from './entities/token-info.entity';
 import { JwtService } from '@nestjs/jwt';
+import { User } from '../users/entities/user.entity';
+import { AdminGuard } from './guards/admin.guard';
 
 @ObjectType()
 export class AuthStatus {
@@ -35,6 +37,20 @@ export class AuthResolver {
     private readonly authService: AuthService,
     private readonly jwtService: JwtService,
   ) {}
+  /**
+   * 관리자용: 회원탈퇴한 사용자 목록 조회
+   * @returns 회원탈퇴한 사용자 목록
+   */
+  @Query(() => [User])
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  async getDeletedUsers() {
+    try {
+      return await this.authService.getDeletedUsers();
+    } catch (error) {
+      this.logger.error('회원탈퇴 사용자 조회 중 오류:', error);
+      throw new ForbiddenException('회원탈퇴 사용자 조회에 실패했습니다');
+    }
+  }
 
   /**
    * 토큰 정보 조회
