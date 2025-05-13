@@ -12,13 +12,13 @@ import { JwtService } from '@nestjs/jwt';
 export class AuthStatus {
   @Field()
   isAuthenticated: boolean;
-  
+
   @Field()
   message: string;
-  
+
   @Field()
   tokenStatus: string;
-  
+
   @Field({ nullable: true })
   expiresIn?: number;
 }
@@ -33,7 +33,7 @@ export class AuthResolver {
 
   constructor(
     private readonly authService: AuthService,
-    private readonly jwtService: JwtService
+    private readonly jwtService: JwtService,
   ) {}
 
   /**
@@ -45,13 +45,13 @@ export class AuthResolver {
   async tokenInfo(@Args('token') token: string) {
     const decoded = this.jwtService.decode(token);
     const currentTime = Math.floor(Date.now() / 1000);
-    
+
     return {
       subject: decoded.sub,
       issuedAt: new Date(decoded.iat * 1000),
       expiresAt: new Date(decoded.exp * 1000),
       isExpired: decoded.exp < currentTime,
-      isBlacklisted: await this.authService.isTokenBlacklisted(token)
+      isBlacklisted: await this.authService.isTokenBlacklisted(token),
     };
   }
 
@@ -66,7 +66,7 @@ export class AuthResolver {
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return true; // 토큰이 없으면 만료된 것으로 간주
     }
-    
+
     const token = authHeader.substring(7);
     try {
       // 토큰 디코딩 및 만료 시간 확인
@@ -74,7 +74,7 @@ export class AuthResolver {
       if (!decoded || !decoded.exp) {
         return true;
       }
-      
+
       const currentTime = Math.floor(Date.now() / 1000);
       return decoded.exp < currentTime;
     } catch (error) {
@@ -92,61 +92,61 @@ export class AuthResolver {
   async checkAuthStatus(@Context() context) {
     const authHeader = context.req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return { 
-        isAuthenticated: false, 
+      return {
+        isAuthenticated: false,
         message: '인증 토큰이 없습니다',
-        tokenStatus: 'MISSING'
+        tokenStatus: 'MISSING',
       };
     }
-    
+
     const token = authHeader.substring(7);
     try {
       // 토큰 검증
       const decoded = this.jwtService.verify(token);
-      
+
       // 블랙리스트 확인
       const isBlacklisted = await this.authService.isTokenBlacklisted(token);
       if (isBlacklisted) {
-        return { 
-          isAuthenticated: false, 
+        return {
+          isAuthenticated: false,
           message: '로그아웃된 토큰입니다',
-          tokenStatus: 'BLACKLISTED'
+          tokenStatus: 'BLACKLISTED',
         };
       }
-      
+
       // 만료 시간 확인
       const currentTime = Math.floor(Date.now() / 1000);
       const timeToExpire = decoded.exp - currentTime;
-      
+
       // 만료 5분 전인지 확인
       if (timeToExpire < 300 && timeToExpire > 0) {
-        return { 
-          isAuthenticated: true, 
+        return {
+          isAuthenticated: true,
           message: '토큰이 곧 만료됩니다',
           tokenStatus: 'EXPIRING_SOON',
-          expiresIn: timeToExpire
+          expiresIn: timeToExpire,
         };
       }
-      
-      return { 
-        isAuthenticated: true, 
+
+      return {
+        isAuthenticated: true,
         message: '인증 상태가 유효합니다',
         tokenStatus: 'VALID',
-        expiresIn: timeToExpire
+        expiresIn: timeToExpire,
       };
     } catch (error) {
       if (error.name === 'TokenExpiredError') {
-        return { 
-          isAuthenticated: false, 
+        return {
+          isAuthenticated: false,
           message: '인증 토큰이 만료되었습니다',
-          tokenStatus: 'EXPIRED'
+          tokenStatus: 'EXPIRED',
         };
       }
-      
-      return { 
-        isAuthenticated: false, 
+
+      return {
+        isAuthenticated: false,
         message: '유효하지 않은 토큰입니다',
-        tokenStatus: 'INVALID'
+        tokenStatus: 'INVALID',
       };
     }
   }
@@ -159,11 +159,11 @@ export class AuthResolver {
   @Mutation(() => AuthPayload)
   async login(@Args('input') input: LoginInput) {
     const user = await this.authService.validateUser(input.email, input.password);
-    
+
     if (!user) {
       throw new UnauthorizedException('유효하지 않은 인증 정보입니다');
     }
-    
+
     return this.authService.login(user);
   }
 
@@ -173,8 +173,8 @@ export class AuthResolver {
    * @param context GraphQL 컨텍스트 (요청 정보 포함)
    * @returns 로그아웃 성공 여부
    */
-  @Mutation(() => Boolean)
   @UseGuards(JwtAuthGuard)
+  @Mutation(() => Boolean)
   async logout(@Context() context) {
     try {
       // 요청 헤더에서 토큰 추출
@@ -191,7 +191,7 @@ export class AuthResolver {
       return false;
     }
   }
-  
+
   /**
    * 이메일 인증 토큰 발송
    * @param email 인증 토큰을 받을 이메일 주소
@@ -209,10 +209,7 @@ export class AuthResolver {
    * @returns 처리 결과 메시지
    */
   @Mutation(() => String)
-  async checkToken(
-    @Args('inputToken') inputToken: string,
-    @Args('email') email: string,
-  ): Promise<string> {
+  async checkToken(@Args('inputToken') inputToken: string, @Args('email') email: string): Promise<string> {
     return this.authService.checkToken({ inputToken, email });
   }
 
@@ -224,11 +221,11 @@ export class AuthResolver {
   @Mutation(() => AuthPayload)
   async adminLogin(@Args('input') input: LoginInput) {
     const user = await this.authService.validateAdminUser(input.email, input.password);
-    
+
     if (!user) {
       throw new UnauthorizedException('관리자 인증에 실패했습니다');
     }
-    
+
     return this.authService.login(user);
   }
 

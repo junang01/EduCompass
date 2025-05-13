@@ -13,26 +13,23 @@ import { User } from '../users/entities/user.entity';
 export class BookRecommendationResolver {
   constructor(private readonly bookRecommendationService: BookRecommendationService) {}
 
-  @Query(() => [BookRecommendation])
   @UseGuards(GqlAuthGuard)
+  @Query(() => [BookRecommendation])
   async bookRecommendations(
-    @CurrentUser() user: User,
+    @CurrentUser() user: User, //
     @Args() args: BookRecommendationArgs,
   ): Promise<BookRecommendation[]> {
     return this.bookRecommendationService.findAll(user.id, args);
   }
 
-  @Query(() => BookRecommendation)
   @UseGuards(GqlAuthGuard)
-  async bookRecommendation(
-    @Args('id', { type: () => Int }) id: number,
-    @CurrentUser() user: User,
-  ): Promise<BookRecommendation> {
+  @Query(() => BookRecommendation)
+  async bookRecommendation(@Args('id', { type: () => Int }) id: number, @CurrentUser() user: User): Promise<BookRecommendation> {
     return this.bookRecommendationService.findOne(id, user.id);
   }
 
-  @Mutation(() => BookRecommendation)
   @UseGuards(GqlAuthGuard)
+  @Mutation(() => BookRecommendation)
   async createBookRecommendation(
     @Args('createBookRecommendationInput') createBookRecommendationInput: CreateBookRecommendationInput,
     @CurrentUser() user: User,
@@ -43,43 +40,30 @@ export class BookRecommendationResolver {
     });
   }
 
-  @Mutation(() => BookRecommendation)
   @UseGuards(GqlAuthGuard)
+  @Mutation(() => BookRecommendation)
   async updateBookRecommendation(
     @Args('updateBookRecommendationInput') updateBookRecommendationInput: UpdateBookRecommendationInput,
     @CurrentUser() user: User,
   ): Promise<BookRecommendation> {
-    return this.bookRecommendationService.update(
-      updateBookRecommendationInput.id,
-      updateBookRecommendationInput,
-      user.id
-    );
+    return this.bookRecommendationService.update(updateBookRecommendationInput.id, updateBookRecommendationInput, user.id);
   }
 
-  @Mutation(() => Boolean)
   @UseGuards(GqlAuthGuard)
-  async deleteBookRecommendation(
-    @Args('id', { type: () => Int }) id: number,
-    @CurrentUser() user: User,
-  ): Promise<boolean> {
+  @Mutation(() => Boolean)
+  async deleteBookRecommendation(@Args('id', { type: () => Int }) id: number, @CurrentUser() user: User): Promise<boolean> {
     return this.bookRecommendationService.delete(id, user.id);
   }
 
-  @Mutation(() => BookRecommendation)
   @UseGuards(GqlAuthGuard)
-  async toggleFavorite(
-    @Args('id', { type: () => Int }) id: number,
-    @CurrentUser() user: User,
-  ): Promise<BookRecommendation> {
+  @Mutation(() => BookRecommendation)
+  async toggleFavorite(@Args('id', { type: () => Int }) id: number, @CurrentUser() user: User): Promise<BookRecommendation> {
     return this.bookRecommendationService.toggleFavorite(id, user.id);
   }
 
-  @Query(() => [BookRecommendation])
   @UseGuards(GqlAuthGuard)
-  async getBookRecommendations(
-    @Args('subject') subject: string,
-    @CurrentUser() user: User,
-  ): Promise<any[]> {
+  @Query(() => [BookRecommendation])
+  async getBookRecommendations(@Args('subject') subject: string, @CurrentUser() user: User): Promise<any[]> {
     return this.bookRecommendationService.getRecommendations(user.id, subject);
   }
 }

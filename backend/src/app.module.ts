@@ -12,14 +12,9 @@ import { StudyPlanModule } from './apis/study-plan/study-plans.module';
 import { StudyStatusModule } from './apis/study-status/study-status.module';
 import { NoticeModule } from './apis/notice/notice.module';
 import { SubjectModule } from './apis/subject/subject.module';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { PassportModule } from '@nestjs/passport';
 import { ScheduleModule } from '@nestjs/schedule';
-import { Reflector } from '@nestjs/core';
-import { AdminUserSeed } from './apis/auth/seeds/admin-user.seed';
 import { User } from './apis/users/entities/user.entity';
-import { APP_INTERCEPTOR } from '@nestjs/core';
 
 @Module({
   imports: [
@@ -40,8 +35,7 @@ import { APP_INTERCEPTOR } from '@nestjs/core';
       autoSchemaFile: true,
       playground: true,
       introspection: true,
-      // 명시적으로 context에 req 객체 추가
-
+      // 명시적으로 context에 req 객체 추가해야댐
       context: ({ req }) => ({ req }),
       formatError: (error) => {
         console.error(error);
@@ -62,8 +56,5 @@ import { APP_INTERCEPTOR } from '@nestjs/core';
     SubjectModule,
     TypeOrmModule.forFeature([User]),
   ],
-  controllers: [AppController],
-  providers: [AppService, Reflector, AdminUserSeed],
-
 })
 export class AppModule {}

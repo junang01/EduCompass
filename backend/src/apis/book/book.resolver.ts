@@ -22,20 +22,20 @@ export class BookResolver {
     return this.bookService.findOne(id);
   }
 
-  @Mutation(() => Book)
   @UseGuards(GqlAuthGuard)
+  @Mutation(() => Book)
   async createBook(@Args('createBookInput') createBookInput: CreateBookInput): Promise<IBook> {
     return this.bookService.create(createBookInput);
   }
 
-  @Mutation(() => Book)
   @UseGuards(GqlAuthGuard)
+  @Mutation(() => Book)
   async updateBook(@Args('updateBookInput') updateBookInput: UpdateBookInput): Promise<IBook> {
     return this.bookService.update(updateBookInput.id, updateBookInput);
   }
 
-  @Mutation(() => Boolean)
   @UseGuards(GqlAuthGuard)
+  @Mutation(() => Boolean)
   async deleteBook(@Args('id', { type: () => Int }) id: number): Promise<boolean> {
     return this.bookService.delete(id);
   }

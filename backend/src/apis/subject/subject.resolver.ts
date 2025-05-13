@@ -20,29 +20,26 @@ export class SubjectResolver {
     return this.subjectService.findOne(id);
   }
 
-  @Mutation(() => Subject)
   @UseGuards(GqlAuthGuard)
+  @Mutation(() => Subject)
   async createSubject(
-    @Args('createSubjectInput') createSubjectInput: CreateSubjectInput,
+    @Args('createSubjectInput') createSubjectInput: CreateSubjectInput, //
   ): Promise<Subject> {
     return this.subjectService.create(createSubjectInput);
   }
 
-  @Mutation(() => Subject)
   @UseGuards(GqlAuthGuard)
+  @Mutation(() => Subject)
   async updateSubject(
-    @Args('updateSubjectInput') updateSubjectInput: UpdateSubjectInput,
+    @Args('updateSubjectInput') updateSubjectInput: UpdateSubjectInput, //
   ): Promise<Subject> {
-    return this.subjectService.update(
-      updateSubjectInput.id,
-      updateSubjectInput,
-    );
+    return this.subjectService.update(updateSubjectInput.id, updateSubjectInput);
   }
 
-  @Mutation(() => Boolean)
   @UseGuards(GqlAuthGuard)
+  @Mutation(() => Boolean)
   async deleteSubject(
-    @Args('id', { type: () => Int }) id: number,
+    @Args('id', { type: () => Int }) id: number, //
   ): Promise<boolean> {
     return this.subjectService.delete(id);
   }

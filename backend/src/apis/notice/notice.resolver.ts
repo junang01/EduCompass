@@ -15,86 +15,66 @@ import { NoticeResponse } from './dto/notice-response';
 export class NoticeResolver {
   constructor(private readonly noticeService: NoticeService) {}
 
-  @Query(() => [Notification])
   @UseGuards(GqlAuthGuard)
+  @Query(() => [Notification])
   async notices(
-    @CurrentUser() user: User,
+    @CurrentUser() user: User, //
     @Args() args: NoticeArgs,
   ): Promise<Notification[]> {
     return this.noticeService.findAll(user.id, args);
   }
 
-  @Query(() => Notification)
   @UseGuards(GqlAuthGuard)
+  @Query(() => Notification)
   async notice(
-    @Args('id', { type: () => Int }) id: number,
+    @Args('id', { type: () => Int }) id: number, //
     @CurrentUser() user: User,
   ): Promise<Notification> {
     return this.noticeService.findOne(id, user.id);
   }
 
-  @Mutation(() => Notification)
   @UseGuards(GqlAuthGuard)
-  async createNotice(
-    @Args('createNoticeInput') createNoticeInput: CreateNoticeInput,
-    @CurrentUser() user: User,
-  ): Promise<Notification> {
+  @Mutation(() => Notification)
+  async createNotice(@Args('createNoticeInput') createNoticeInput: CreateNoticeInput, @CurrentUser() user: User): Promise<Notification> {
     return this.noticeService.create({
       ...createNoticeInput,
       userId: user.id,
     });
   }
 
-  @Mutation(() => Notification)
   @UseGuards(GqlAuthGuard)
-  async updateNotice(
-    @Args('updateNoticeInput') updateNoticeInput: UpdateNoticeInput,
-    @CurrentUser() user: User,
-  ): Promise<Notification> {
-    return this.noticeService.update(
-      updateNoticeInput.id,
-      updateNoticeInput,
-      user.id
-    );
+  @Mutation(() => Notification)
+  async updateNotice(@Args('updateNoticeInput') updateNoticeInput: UpdateNoticeInput, @CurrentUser() user: User): Promise<Notification> {
+    return this.noticeService.update(updateNoticeInput.id, updateNoticeInput, user.id);
   }
 
-  @Mutation(() => Boolean)
   @UseGuards(GqlAuthGuard)
+  @Mutation(() => Boolean)
   async deleteNotice(
-    @Args('id', { type: () => Int }) id: number,
+    @Args('id', { type: () => Int }) id: number, //
     @CurrentUser() user: User,
   ): Promise<boolean> {
     return this.noticeService.delete(id, user.id);
   }
 
-  @Mutation(() => Notification)
   @UseGuards(GqlAuthGuard)
-  async sendNotice(
-    @Args('createNoticeInput') createNoticeInput: CreateNoticeInput,
-    @CurrentUser() user: User,
-  ): Promise<Notification> {
+  @Mutation(() => Notification)
+  async sendNotice(@Args('createNoticeInput') createNoticeInput: CreateNoticeInput, @CurrentUser() user: User): Promise<Notification> {
     return this.noticeService.create({
       ...createNoticeInput,
       userId: user.id,
     });
   }
-  
-  @Mutation(() => NoticeResponse)
+
   @UseGuards(GqlAuthGuard)
-  async sendEmailToParent(
-    @Args('data') data: SendEmailInput,
-    @CurrentUser() user: User,
-  ): Promise<any> {
-    
+  @Mutation(() => NoticeResponse)
+  async sendEmailToParent(@Args('data') data: SendEmailInput, @CurrentUser() user: User): Promise<any> {
     const emailData = {
       parentEmail: data.parentEmail,
       reportContent: data.reportContent,
       userId: user.id,
     };
-    
+
     return this.noticeService.sendEmailToParent(emailData);
   }
-  
-  
-  
 }

@@ -3,45 +3,42 @@ import { BookSaveService } from './booksave.service';
 import { BookSave } from './entities/booksave.entity';
 import { CreateBookSaveDto } from './dto/create-booksave.dto';
 import { UseGuards } from '@nestjs/common';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { User } from '../users/entities/user.entity';
+import { GqlAuthGuard } from '../auth/guards/gql-auth.guard';
 
 @Resolver(() => BookSave)
 export class BookSaveResolver {
   constructor(private readonly bookSaveService: BookSaveService) {}
 
+  @UseGuards(GqlAuthGuard)
   @Mutation(() => BookSave)
-  @UseGuards(JwtAuthGuard)
-  createBookSave(
-    @Args('createBookSaveInput') createBookSaveDto: CreateBookSaveDto,
-    @CurrentUser() user: User,
-  ) {
+  createBookSave(@Args('createBookSaveInput') createBookSaveDto: CreateBookSaveDto, @CurrentUser() user: User) {
     // 현재 로그인한 사용자의 ID를 사용
     createBookSaveDto.userId = user.id;
     return this.bookSaveService.create(createBookSaveDto);
   }
 
+  @UseGuards(GqlAuthGuard)
   @Query(() => [BookSave], { name: 'bookSaves' })
-  @UseGuards(JwtAuthGuard)
   findAll() {
     return this.bookSaveService.findAll();
   }
 
+  @UseGuards(GqlAuthGuard)
   @Query(() => [BookSave], { name: 'userBookSaves' })
-  @UseGuards(JwtAuthGuard)
   findByUser(@CurrentUser() user: User) {
     return this.bookSaveService.findByUser(user.id);
   }
 
+  @UseGuards(GqlAuthGuard)
   @Query(() => BookSave, { name: 'bookSave' })
-  @UseGuards(JwtAuthGuard)
   findOne(@Args('id', { type: () => ID }) id: number) {
     return this.bookSaveService.findOne(id);
   }
 
+  @UseGuards(GqlAuthGuard)
   @Mutation(() => Boolean)
-  @UseGuards(JwtAuthGuard)
   removeBookSave(@Args('id', { type: () => ID }) id: number) {
     return this.bookSaveService.delete(id);
   }

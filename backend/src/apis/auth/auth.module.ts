@@ -15,9 +15,9 @@ import { TokenBlacklist } from './entities/token-blacklist.entity';
 @Module({
   imports: [
     TypeOrmModule.forFeature([AuthToken, EmailVaildation, TokenBlacklist]),
-    PassportModule.register({ 
+    PassportModule.register({
       session: true,
-      defaultStrategy: 'jwt' 
+      defaultStrategy: 'jwt',
     }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -29,11 +29,7 @@ import { TokenBlacklist } from './entities/token-blacklist.entity';
     }),
     UsersModule,
   ],
-  providers: [
-    AuthService,
-    AuthResolver,
-    JwtStrategy,
-  ],
+  providers: [AuthService, AuthResolver, JwtStrategy],
   exports: [AuthService, JwtModule],
 })
 export class AuthModule {}
