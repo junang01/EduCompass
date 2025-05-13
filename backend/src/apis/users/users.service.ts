@@ -137,7 +137,18 @@ export class UsersService implements IUserService {
       }
     });
   }
-  
+  /**
+ * 회원탈퇴한 사용자 목록 조회
+ * @returns 회원탈퇴한 사용자 목록
+ */
+async findDeletedUsers(): Promise<User[]> {
+  return this.userRepository.find({
+    withDeleted: true,
+    where: {
+      deletedAt: Not(IsNull())
+    }
+  });
+}
   async isEmailTaken(email: string): Promise<boolean> {
     const user = await this.userRepository.findOne({ where: { email } });
     if (user) {

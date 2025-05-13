@@ -435,4 +435,18 @@ export class AuthService {
       return null;
     }
   }
+  /**
+ * 회원탈퇴한 사용자 목록 조회
+ * @returns 회원탈퇴한 사용자 목록
+ */
+async getDeletedUsers(): Promise<User[]> {
+  try {
+    // isDeleted 필드가 true인 사용자만 조회
+    return await this.usersService.findDeletedUsers();
+  } catch (error) {
+    console.error('회원탈퇴 사용자 조회 중 오류 발생:', error);
+    throw new InternalServerErrorException('회원탈퇴 사용자 조회에 실패했습니다');
+  }
+}
+
 }
