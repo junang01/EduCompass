@@ -23,7 +23,7 @@ export class Book {
   subject_seq: number;
 
   @Field(() => Subject)
-  @ManyToOne(() => Subject, subject => subject.books)
+  @ManyToOne(() => Subject)
   @JoinColumn({ name: 'subject_seq' })
   subject: Subject;
 
@@ -51,6 +51,6 @@ export class Book {
   @UpdateDateColumn({ name: 'book_mod_date' })
   updatedAt: Date;
 
-  @OneToMany(() => BookRecommendation, bookRecommendation => bookRecommendation.book)
+  @OneToMany(() => BookRecommendation, (bookRecommendation) => bookRecommendation.book)
   bookRecommendations: BookRecommendation[];
 }

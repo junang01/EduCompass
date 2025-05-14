@@ -19,21 +19,11 @@ export class StudyPlan {
   @Column()
   studyGoal: string;
 
-  @Field(() => Boolean)
-  @Column()
-  statePlan: boolean;
-
-  @Column(() => Number)
-  subject_seq: number;
-
   @Field(() => Number)
   @Column()
   userId: number;
 
-  @ManyToOne(() => Subject, { eager: true })
-  @JoinColumn({ name: 'subject_seq' })
-  subject: Subject;
-
+  @JoinColumn()
   @Field(() => [StudySchedule])
   @OneToMany(() => StudySchedule, (schedule) => schedule.studyPlan)
   schedules: StudySchedule[];
@@ -50,7 +40,7 @@ export class StudyPlan {
   })
   updatedAt: Date;
 
+  @JoinColumn()
   @ManyToOne(() => User, (user) => user.studyPlans)
-  @JoinColumn({ name: 'userId' })
   user: User;
 }

@@ -1,6 +1,8 @@
 import { ObjectType, Field, ID } from '@nestjs/graphql';
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn, OneToOne } from 'typeorm';
 import { StudyPlan } from 'src/apis/study-plan/entities/study-plan.entity';
+import { Subject } from 'src/apis/subject/entities/subject.entity';
+import { User } from 'src/apis/users/entities/user.entity';
 
 @ObjectType()
 @Entity()
@@ -9,38 +11,41 @@ export class StudySchedule {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Field()
-  @Column()
-  day: string;
-
-  @Field()
-  @Column()
+  @Field(() => String)
+  @Column({ type: 'time' })
   startTime: string;
 
-  @Field()
-  @Column()
+  @Field(() => String)
+  @Column({ type: 'time' })
   endTime: string;
 
-  @Field()
-  @Column()
-  subject: string;
+  @JoinColumn()
+  @OneToOne(() => Subject)
+  @Field(() => Subject)
+  subject: Subject;
 
-  @Field()
+  @Field(() => String)
   @Column()
   content: string;
 
-  @Field()
-  @Column()
-  date: string;
+  @Field(() => Date)
+  @Column({ type: 'date' })
+  date: Date;
 
   @Field()
   @Column({ default: false })
   completed: boolean;
 
-  @Field(() => StudyPlan)
+  @JoinColumn()
+  @Field()
+  @ManyToOne(() => User, (User) => User.studySchedule, { onDelete: 'CASCADE' })
+  user: User;
+
+  @JoinColumn()
   @ManyToOne(() => StudyPlan, (studyPlan) => studyPlan.schedules, {
     onDelete: 'CASCADE',
+    nullable: true,
   })
-  @JoinColumn({ name: 'study_plan_id' })
+  @Field(() => StudyPlan)
   studyPlan: StudyPlan;
 }

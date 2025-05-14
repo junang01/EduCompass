@@ -23,9 +23,8 @@ export class SubjectService implements ISubjectService {
     return subject;
   }
 
-  async create(subjectData: ISubject): Promise<Subject> {
-    const newSubject = this.subjectRepository.create(subjectData);
-    return this.subjectRepository.save(newSubject);
+  async create(subjectName): Promise<Subject> {
+    return this.subjectRepository.save(subjectName);
   }
 
   async update(id: number, subjectData: Partial<ISubject>): Promise<Subject> {
@@ -40,13 +39,12 @@ export class SubjectService implements ISubjectService {
   }
 
   async findOrCreateByName(subjectName: string): Promise<Subject> {
-    let subject = await this.subjectRepository.findOne({ where: { subjectName } });
+    const subject = await this.subjectRepository.findOne({ where: { subjectName } });
 
     if (!subject) {
-      subject = this.subjectRepository.create({ subjectName });
-      subject = await this.subjectRepository.save(subject);
+      const newSubject = this.create(subjectName);
+      return newSubject;
     }
-
     return subject;
   }
 }

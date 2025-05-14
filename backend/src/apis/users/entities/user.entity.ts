@@ -5,6 +5,7 @@ import { StudyPlan } from '../../study-plan/entities/study-plan.entity';
 import { BookSave } from '../../bookSave/entities/booksave.entity';
 import { Notification } from '../../notice/entities/notice.entity';
 import { AuthToken } from '../../auth/entities/auth-token.entity';
+import { StudySchedule } from 'src/apis/studySchedule/entities/studySchedule.entity';
 
 @ObjectType()
 @Entity()
@@ -41,7 +42,6 @@ export class User {
   receiverEmail: string;
 
   @Field()
-
   @CreateDateColumn({ name: 'user_create_date' })
   createdAt: Date;
 
@@ -49,28 +49,28 @@ export class User {
   @UpdateDateColumn({ name: 'user_mod_date' })
   updatedAt: Date;
 
-
   // 소프트 딜리트를 위한 컬럼 추가
   @Field(() => Date, { nullable: true })
   @DeleteDateColumn()
   deletedAt: Date;
-  
+
   @Field(() => String, { nullable: true }) // nullable: true로 변경
   @Column({ default: 'USER', nullable: true }) // nullable: true로 변경
   role: string; // 'USER' 또는 'ADMIN'
 
   // 관계 설정
-  @OneToMany(() => StudyPlan, studyPlan => studyPlan.user)
+  @OneToMany(() => StudyPlan, (studyPlan) => studyPlan.user)
   studyPlans: StudyPlan[];
 
-  @OneToMany(() => BookSave, bookSave => bookSave.user)
+  @OneToMany(() => BookSave, (bookSave) => bookSave.user)
   bookSaves: BookSave[];
 
-  @OneToMany(() => Notification, notification => notification.user)
+  @OneToMany(() => Notification, (notification) => notification.user)
   notifications: Notification[];
 
-  @OneToMany(() => AuthToken, authToken => authToken.user)
+  @OneToMany(() => AuthToken, (authToken) => authToken.user)
   authTokens: AuthToken[];
 
+  @OneToMany(() => StudySchedule, (StudySchedule) => StudySchedule.user)
+  studySchedule: StudySchedule[];
 }
-

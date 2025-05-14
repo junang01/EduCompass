@@ -33,9 +33,9 @@ export class BookRecommendation {
   @Column()
   subject_seq: number;
 
-  @Field(() => Subject)
-  @ManyToOne(() => Subject, subject => subject.bookRecommendations)
   @JoinColumn({ name: 'subject_seq' })
+  @Field(() => Subject)
+  @ManyToOne(() => Subject)
   subject: Subject;
 
   @Field()

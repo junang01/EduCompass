@@ -55,7 +55,6 @@ export class StudyPlansService {
         1. 전체 학습 기간 동안 하루도 빠짐없이 날짜별 계획을 생성해야 합니다.
         2. 각 날짜는 아래 항목들을 포함하는 JSON 배열 형식으로만 작성하세요:
            - date (예: 2025-04-20)
-           - day (예: 일요일)
            - startTime (예: 09:00)
            - endTime (예: 12:00)
            - subject (예: 수학)
@@ -106,16 +105,11 @@ export class StudyPlansService {
       const subjectNames = [...new Set(createStudyPlanInput.studyBookInput.map((book) => book.subject))];
       const subjectEntities: Subject[] = await Promise.all(subjectNames.map((name) => this.subjectService.findOrCreateByName(name)));
 
-      const mainSubject = subjectEntities[0];
-
       // StudyPlan 객체 생성
       const studyPlan = this.studyPlanRepository.create({
         title: title,
         studyGoal: createStudyPlanInput.studyLevel,
-        statePlan: true,
-        userId: userId, // 실제 사용자 ID로 변경
-        subject_seq: mainSubject.id,
-        subject: mainSubject,
+        userId: userId,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -125,7 +119,6 @@ export class StudyPlansService {
       // StudySchedule 객체 저장
       const schedulePromises = scheduleData.map(async (scheduleItem) => {
         const schedule = this.studyScheduleRepository.create({
-          day: `${scheduleItem.date} ${scheduleItem.day}`,
           startTime: scheduleItem.startTime,
           endTime: scheduleItem.endTime,
           subject: scheduleItem.subject,
@@ -155,6 +148,5 @@ export class StudyPlansService {
       console.error('학습 계획 생성 중 오류 발생:', error);
       throw new Error('학습 계획 생성에 실패했습니다.');
     }
-
   }
 }

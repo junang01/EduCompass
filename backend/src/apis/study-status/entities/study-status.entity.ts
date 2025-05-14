@@ -1,11 +1,5 @@
 import { ObjectType, Field, ID, Float } from '@nestjs/graphql';
-import {
-  Entity,
-  Column,
-  PrimaryGeneratedColumn,
-  ManyToOne,
-  JoinColumn,
-} from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { StudyPlan } from '../../study-plan/entities/study-plan.entity';
 import { Subject } from '../../subject/entities/subject.entity';
@@ -29,31 +23,19 @@ export class StudyStatus {
   @Column({ type: 'float', default: 0 })
   incompleteRate: number;
 
-  @Field(() => ID)
-  @Column()
-  subject_seq: number;
-
-  @Field(() => Subject)
-  @ManyToOne(() => Subject, (subject) => subject.studyStatuses)
   @JoinColumn({ name: 'subject_seq' })
+  @Field(() => Subject)
+  @ManyToOne(() => Subject)
   subject: Subject;
 
-  @Field(() => ID)
-  @Column()
-  studyPlanId: number;
-
-  @Field(() => StudyPlan)
+  @JoinColumn()
   @ManyToOne(() => StudyPlan)
-  @JoinColumn({ name: 'studyPlanId' })
+  @Field(() => StudyPlan)
   studyPlan: StudyPlan;
 
-  @Field(() => ID)
-  @Column()
-  userId: number;
-
-  @Field(() => User)
+  @JoinColumn()
   @ManyToOne(() => User)
-  @JoinColumn({ name: 'userId' })
+  @Field(() => User)
   user: User;
 
   @Field()
