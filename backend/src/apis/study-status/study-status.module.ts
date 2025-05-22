@@ -5,9 +5,10 @@ import { StudyStatusService } from './study-status.service';
 import { StudyStatusResolver } from './study-status.resolver';
 import { Subject } from '../subject/entities/subject.entity';
 import { StudySchedule } from '../studyschedule/entities/studyschedule.entity';
+import { StudyPlan } from '../study-plan/entities/study-plan.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([StudyStatus, Subject])],
+  imports: [TypeOrmModule.forFeature([StudyStatus, Subject, StudySchedule, StudyPlan])],
   providers: [StudyStatusService, StudyStatusResolver],
   exports: [StudyStatusService],
 })

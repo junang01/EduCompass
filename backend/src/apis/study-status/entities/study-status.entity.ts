@@ -17,11 +17,11 @@ export class StudyStatus {
 
   @Field(() => Float)
   @Column({ type: 'float', default: 0 })
-  postponeRate: number;
+  delayRate: number;
 
   @Field(() => Float)
   @Column({ type: 'float', default: 0 })
-  incompleteRate: number;
+  remainingPercent: number;
 
   @JoinColumn({ name: 'subject_seq' })
   @Field(() => Subject)

@@ -3,16 +3,80 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { StudyStatus } from './entities/study-status.entity';
 import { Subject } from '../subject/entities/subject.entity';
-import { IStudyStatus } from './interfaces/study-status.interface';
+import {IStudyStatusServiceGetStatus } from './interfaces/study-status.interface';
 import { OverallStatsResponse } from './dto/overall-stats.response';
+import { StudyPlan } from '../study-plan/entities/study-plan.entity';
+import { StudySchedule } from '../studySchedule/entities/studySchedule.entity';
+import { CreateStudyStatusInput } from './dto/create-study-status.input';
 @Injectable()
 export class StudyStatusService {
   constructor(
-    @InjectRepository(StudyStatus)
-    private readonly studyStatusRepository: Repository<StudyStatus>,
-    @InjectRepository(Subject)
-    private readonly subjectRepository: Repository<Subject>,
+    @InjectRepository(StudyPlan)
+    private readonly studyPlanRepository: Repository<StudyPlan>,
+    @InjectRepository(StudySchedule)
+    private readonly studyScheduleRepository: Repository<StudySchedule>,
   ) {}
+
+  async getStudyStatusByPlan({id, user}:IStudyStatusServiceGetStatus):Promise<CreateStudyStatusInput[]> {
+ 
+    const plan = await this.studyPlanRepository.findOne({
+      where: { id, user: { id: user.id } },
+      relations: ['schedules', 'schedules.subject'],
+    });
+
+    if (!plan) {
+      throw new NotFoundException('해당 계획이 없습니다/');
+    }
+
+    const [startStr, endStr] = plan.studyPeriod.split('to').map(s => s.trim());
+    const startDate = new Date(startStr);
+    const endDate = new Date(endStr);
+    const today = new Date();
+
+    // 3. schedules를 과목별로 그룹핑
+    const schedulesBySubject = plan.schedules.reduce((acc, schedule) => {
+
+      if (!schedule.subject) return acc;
+      const subjectId = schedule.subject.id;
+      if (!acc[subjectId]) acc[subjectId] = [];
+      acc[subjectId].push(schedule);
+      return acc;
+    }, {} as Record<number, StudySchedule[]>);
+
+    // 4. 결과 배열 구성
+    const result = [];
+
+    for (const subjectId in schedulesBySubject) {
+      const schedules = schedulesBySubject[subjectId];
+      const total = schedules.length;
+
+      const completedCount = schedules.filter(s => s.completed).length;
+      const delayCount = schedules.filter(s => s.delay).length;
+
+      const completionRate = total === 0 ? 0 : (completedCount / total) * 100;
+      const postponeRate = total === 0 ? 0 : (delayCount / total) * 100;
+
+      let remainingPeriodPercent = 0;
+      if (today < startDate) remainingPeriodPercent = 0;
+      else if (today > endDate) remainingPeriodPercent = 100;
+      else {
+        const elapsed = today.getTime() - startDate.getTime();
+        const totalDuration = endDate.getTime() - startDate.getTime();
+        remainingPeriodPercent = (elapsed / totalDuration) * 100;
+      }
+
+      result.push({
+        subjectId: Number(subjectId),
+        subjectName: schedules[0].subject.subjectName,  // 이름 추가 (optional)
+        completionRate,
+        postponeRate,
+        remainingPeriodPercent,
+        totalSchedules: total,
+      });
+    }
+
+    return result;
+  
 
   // async findAll(userId: number, args?: any): Promise<StudyStatus[]> {
   //   const query = this.studyStatusRepository.createQueryBuilder('studyStatus').where('studyStatus.userId = :userId', { userId });
@@ -146,4 +210,5 @@ export class StudyStatusService {
   //     subjectStats,
   //   };
   // }
+}
 }

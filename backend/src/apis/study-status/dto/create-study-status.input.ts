@@ -1,37 +1,22 @@
-import { InputType, Field, Int, Float } from '@nestjs/graphql';
-import { IsNotEmpty, IsNumber, IsString, Min, Max } from 'class-validator';
+import { ObjectType, Field, Int, Float } from '@nestjs/graphql';
 
-@InputType()
+@ObjectType()
 export class CreateStudyStatusInput {
+  @Field(() => Int)
+  subjectId: number;
+
+  @Field()
+  subjectName: string;
+
   @Field(() => Float)
-  @IsNotEmpty()
-  @IsNumber()
-  @Min(0)
-  @Max(100)
   completionRate: number;
 
   @Field(() => Float)
-  @IsNotEmpty()
-  @IsNumber()
-  @Min(0)
-  @Max(100)
   postponeRate: number;
 
   @Field(() => Float)
-  @IsNotEmpty()
-  @IsNumber()
-  @Min(0)
-  @Max(100)
-  incompleteRate: number;
+  remainingPeriodPercent: number;
 
   @Field(() => Int)
-  @IsNotEmpty()
-  @IsNumber()
-
-  subject_seq: number;
-
-  @Field(() => Int)
-  @IsNotEmpty()
-  @IsNumber()
-  studyPlanId: number;
+  totalSchedules: number;
 }

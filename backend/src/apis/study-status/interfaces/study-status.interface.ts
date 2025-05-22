@@ -1,3 +1,5 @@
+import { User } from "src/apis/users/entities/user.entity";
+
 export interface IStudyStatus {
   id?: number;
   completionRate: number;
@@ -24,4 +26,9 @@ export interface IStudyStatusService {
   delete(id: number, userId: number): Promise<boolean>;
   getSubjectStats(userId: number, subject: string): Promise<IStudyStatus>;
   getOverallStats(userId: number): Promise<any>;
+}
+
+export interface IStudyStatusServiceGetStatus{
+  id:number,
+  user:User
 }
