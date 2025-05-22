@@ -11,10 +11,12 @@ import { AuthResolver } from './auth.resolver';
 import { AuthToken } from './entities/auth-token.entity';
 import { EmailVaildation } from './entities/email-validation.entity';
 import { TokenBlacklist } from './entities/token-blacklist.entity';
+import { AdminUserSeed } from './seeds/admin-user.seed';
+import { User } from '../users/entities/user.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([AuthToken, EmailVaildation, TokenBlacklist]),
+    TypeOrmModule.forFeature([AuthToken, EmailVaildation, TokenBlacklist, User]),
     PassportModule.register({
       session: true,
       defaultStrategy: 'jwt',
@@ -29,7 +31,7 @@ import { TokenBlacklist } from './entities/token-blacklist.entity';
     }),
     UsersModule,
   ],
-  providers: [AuthService, AuthResolver, JwtStrategy],
-  exports: [AuthService, JwtModule],
+  providers: [AuthService, AuthResolver, JwtStrategy, AdminUserSeed],
+  exports: [AuthService, JwtModule, AdminUserSeed],
 })
 export class AuthModule {}

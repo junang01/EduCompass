@@ -15,13 +15,13 @@ export class AdminUserSeed {
   async seed() {
     // 이미 관리자 계정이 있는지 확인
     const existingAdmin = await this.userRepository.findOne({
-      where: { email: 'admin@educompass.com' }
+      where: { email: 'admin@educompass.com' },
     });
 
     if (!existingAdmin) {
       // 관리자 계정 생성
       const hashedPassword = await bcrypt.hash('admin', 10);
-      
+
       const adminUser = this.userRepository.create({
         email: 'admin@educompass.com',
         password: hashedPassword,
@@ -29,9 +29,9 @@ export class AdminUserSeed {
         role: 'ADMIN',
         school: 'Edu Compass',
         grade: '관리자',
-        line: '관리자'
+        line: '관리자',
       });
-      
+
       await this.userRepository.save(adminUser);
       console.log('관리자 계정이 성공적으로 생성되었습니다.');
     } else {

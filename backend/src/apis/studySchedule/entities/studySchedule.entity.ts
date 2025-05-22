@@ -1,5 +1,5 @@
 import { ObjectType, Field, ID } from '@nestjs/graphql';
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn, OneToOne } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn, OneToOne, Timestamp } from 'typeorm';
 import { StudyPlan } from 'src/apis/study-plan/entities/study-plan.entity';
 import { Subject } from 'src/apis/subject/entities/subject.entity';
 import { User } from 'src/apis/users/entities/user.entity';
@@ -11,33 +11,32 @@ export class StudySchedule {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Field(() => String)
-  @Column({ type: 'time' })
-  startTime: string;
+  @Field(() => Date)
+  @Column({ type: 'timestamp' })
+  startTime: Date;
 
-  @Field(() => String)
-  @Column({ type: 'time' })
-  endTime: string;
+  @Field(() => Date)
+  @Column({ type: 'timestamp' })
+  endTime: Date;
 
-  @JoinColumn()
-  @OneToOne(() => Subject)
-  @Field(() => Subject)
+  @Field(() => Subject, {nullable:true})
+  @ManyToOne(() => Subject, { nullable: true })
   subject: Subject;
 
   @Field(() => String)
   @Column()
   content: string;
 
-  @Field(() => Date)
-  @Column({ type: 'date' })
-  date: Date;
-
   @Field()
   @Column({ default: false })
   completed: boolean;
+  
+  @Field()
+  @Column({default:false})
+  delay: boolean
 
   @JoinColumn()
-  @Field()
+  @Field(() => User)
   @ManyToOne(() => User, (User) => User.studySchedule, { onDelete: 'CASCADE' })
   user: User;
 

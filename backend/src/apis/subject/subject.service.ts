@@ -1,8 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Subject } from './entities/subject.entity';
-import { ISubject, ISubjectService } from './interfaces/subject.interface';
+import { ISubject, ISubjectService, ISubjectServiceFindSubject } from './interfaces/subject.interface';
 
 @Injectable()
 export class SubjectService implements ISubjectService {
@@ -24,7 +24,8 @@ export class SubjectService implements ISubjectService {
   }
 
   async create(subjectName): Promise<Subject> {
-    return this.subjectRepository.save(subjectName);
+    const newSubject = this.subjectRepository.create({ subjectName });
+    return this.subjectRepository.save(newSubject);
   }
 
   async update(id: number, subjectData: Partial<ISubject>): Promise<Subject> {
@@ -45,6 +46,16 @@ export class SubjectService implements ISubjectService {
       const newSubject = this.create(subjectName);
       return newSubject;
     }
+    return subject;
+  }
+
+  async find({ subjectTitles }: ISubjectServiceFindSubject): Promise<Subject[]> {
+    const subject = await this.subjectRepository.find({
+      where: {
+        subjectName: In(subjectTitles),
+      },
+    });
+    if (!subject) throw new Error('찾는 과목이 없습니다.');
     return subject;
   }
 }

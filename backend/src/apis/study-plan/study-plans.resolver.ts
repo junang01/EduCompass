@@ -7,6 +7,7 @@ import { GqlAuthGuard } from '../auth/guards/gql-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { User } from '../users/entities/user.entity';
 import { FeatureUsageService } from '../featureUsage/featureUsage.service';
+import { IContext } from 'src/commons/interfaces/context';
 
 @Resolver(() => StudyPlan)
 export class StudyPlansResolver {
@@ -17,17 +18,30 @@ export class StudyPlansResolver {
 
   @UseGuards(GqlAuthGuard)
   @Mutation(() => StudyPlan)
-  async createStudyPlan(
-    @Args('createStudyPlanInput') createStudyPlanInput: CreateStudyPlanInput,
-    @CurrentUser() user: User,
-  ): Promise<StudyPlan> {
-    console.log(user.id);
+  async createStudyPlan(@Args('createStudyPlanInput') createStudyPlanInput: CreateStudyPlanInput, @CurrentUser() user: User): Promise<StudyPlan> {
     const userId = user.id;
     const featureName = 'CreateStudyPlan';
-    await this.featureUsageService.canUsage({ userId, featureName });
-    const studyPlan = this.studyPlansService.createStudyPlan({ userId, createStudyPlanInput });
-    this.featureUsageService.saveUsage({ userId, featureName });
+    const findUsageReturn = await this.featureUsageService.canUsage({ userId, featureName });
+    const studyPlan = await this.studyPlansService.createStudyPlan({ userId, createStudyPlanInput });
+    await this.featureUsageService.saveUsage({ userId, featureName }, findUsageReturn);
     return studyPlan;
+  }
+
+  @UseGuards(GqlAuthGuard)
+  @Query(() => [StudyPlan])
+  async findStudyPlans(
+    @CurrentUser() user: User,
+  ):Promise<StudyPlan[]>{
+    return await this.studyPlansService.findAll({user})
+  }
+
+  @UseGuards(GqlAuthGuard)
+  @Query(() => StudyPlan)
+  async findStudyPlan(
+    @Args('studyPlanId') studyPlanId: number,
+    @CurrentUser() user:User,
+  ):Promise<StudyPlan>{
+    return await this.studyPlansService.findOne({studyPlanId, user})
   }
 
   //   @UseGuards(GqlAuthGuard)

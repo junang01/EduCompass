@@ -3,26 +3,14 @@ import { IsNotEmpty, IsString, IsNumber } from 'class-validator';
 
 @InputType()
 export class CreateStudyPlanInput {
-  @Field(() => [AvailableStudyScheduleInput])
-  availableStudyScheduleInput: AvailableStudyScheduleInput[];
+  @Field(() => String)
+  title: string;
 
   @Field(() => String)
   studyPeriod: string;
 
-  @Field(() => [ExamContentInput])
-  examContentInput: ExamContentInput[];
-
-  @Field(() => [StudyBookInput])
-  studyBookInput: StudyBookInput[];
-
-  @Field(() => String)
-  studyLevel: string;
-
-  @Field(() => [SubjecctScoreInput])
-  lastSemesterScoreInput: SubjecctScoreInput[];
-
-  @Field(() => [SubjecctScoreInput])
-  mockExamScoreInput: SubjecctScoreInput[];
+  @Field(() => [AvailableStudyScheduleInput])
+  availableStudyScheduleInput: AvailableStudyScheduleInput[];
 
   @Field(() => String)
   learningStyle: string;
@@ -31,7 +19,25 @@ export class CreateStudyPlanInput {
   reviewDays: string[];
 
   @Field(() => [String])
-  missedPlanDay: string[];
+  missedPlanDays: string[];
+
+  @Field(() => [SubjectInput])
+  subjects: SubjectInput[];
+}
+
+@InputType()
+export class SubjectInput {
+  @Field(() => String)
+  subject: string;
+
+  @Field(() => [StudyBookInput])
+  studyBookInput: StudyBookInput[];
+
+  @Field(() => [ExamContentInput])
+  examContentInput: ExamContentInput[];
+
+  @Field(() => String)
+  studyLevel: string;
 }
 
 @InputType()
@@ -52,10 +58,10 @@ export class ExamContentInput {
   examStartDay: string;
 
   @Field(() => String)
-  examEndDay: string;
+  examLastScore: string;
 
   @Field(() => String)
-  examGoal: string;
+  examGoalScore: string;
 }
 
 @InputType()
@@ -64,22 +70,10 @@ export class StudyBookInput {
   bookName: string;
 
   @Field(() => String)
-  subject: string;
-
-  @Field(() => String)
   bookIndex: string;
 
   @Field(() => String)
   bookReview: string;
-}
-
-@InputType()
-export class SubjecctScoreInput {
-  @Field(() => String)
-  subject: string;
-
-  @Field(() => String)
-  score: string;
 }
 
 @InputType()

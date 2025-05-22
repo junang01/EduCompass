@@ -8,9 +8,10 @@ import { StudySchedule } from '../studySchedule/entities/studySchedule.entity';
 import { SubjectModule } from '../subject/subject.module';
 import { FeatureUsage } from '../featureUsage/entities/featureUsage.entity';
 import { FeatureUsageService } from '../featureUsage/featureUsage.service';
+import { ChatGptPrompt } from './entities/chatGptPrompt.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([StudyPlan, Subject, StudySchedule, FeatureUsage]), SubjectModule],
+  imports: [TypeOrmModule.forFeature([StudyPlan, Subject, StudySchedule, FeatureUsage, ChatGptPrompt]), SubjectModule],
 
   providers: [StudyPlansResolver, StudyPlansService, FeatureUsageService],
 

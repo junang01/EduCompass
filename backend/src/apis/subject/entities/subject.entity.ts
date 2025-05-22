@@ -1,9 +1,5 @@
 import { ObjectType, Field, ID } from '@nestjs/graphql';
 import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
-import { Book } from '../../book/entities/book.entity';
-import { StudyPlan } from '../../study-plan/entities/study-plan.entity';
-import { BookRecommendation } from '../../book-rec/entities/book-rec.entity';
-import { StudyStatus } from '../../study-status/entities/study-status.entity';
 
 @ObjectType()
 @Entity()

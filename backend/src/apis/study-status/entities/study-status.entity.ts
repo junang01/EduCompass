@@ -28,12 +28,12 @@ export class StudyStatus {
   @ManyToOne(() => Subject)
   subject: Subject;
 
-  @JoinColumn()
+  @JoinColumn({ name: 'subjectId' })
   @ManyToOne(() => StudyPlan)
   @Field(() => StudyPlan)
   studyPlan: StudyPlan;
 
-  @JoinColumn()
+  @JoinColumn({ name: 'userId' })
   @ManyToOne(() => User)
   @Field(() => User)
   user: User;

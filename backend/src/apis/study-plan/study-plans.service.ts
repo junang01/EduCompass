@@ -1,14 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { StudyPlan } from './entities/study-plan.entity';
 import { StudySchedule } from '../studyschedule/entities/studyschedule.entity';
 import { Subject } from '../subject/entities/subject.entity';
 import { SubjectService } from '../subject/subject.service';
 import OpenAI from 'openai';
 import * as dotenv from 'dotenv';
-import { ICreateStudyPlanService } from './interface/study-plan.interface';
-import { title } from 'process';
+
+import { ChatGptPrompt } from './entities/chatGptPrompt.entity';  
+import Handlebars from 'handlebars';
+import { ICreateStudyPlanService, IStudyPlanServiceFindChatGptPrompt, IStudyPlanServiceFindStudyPlan, IStudyPlanServiceFindStudyPlans } from './interfaces/study-plan.interface';
+
 
 dotenv.config();
 
@@ -26,54 +29,41 @@ export class StudyPlansService {
     @InjectRepository(Subject)
     private readonly subjectRepository: Repository<Subject>,
     private readonly subjectService: SubjectService,
+    @InjectRepository(ChatGptPrompt)
+    private readonly chatGptPrompt: Repository<ChatGptPrompt>,
   ) {}
 
   async createStudyPlan({ userId, createStudyPlanInput }: ICreateStudyPlanService): Promise<StudyPlan> {
+    const promptName = '계획생성';
     try {
-      const availableTimes = createStudyPlanInput.availableStudyScheduleInput
-        .map((schedule) => `${schedule.day}: ${schedule.timeRanges.map((time) => `${time.startTime}-${time.endTime}`).join(', ')}`)
-        .join('; ');
+      const { title, availableStudyScheduleInput, studyPeriod, learningStyle, reviewDays, missedPlanDays, subjects } = createStudyPlanInput;
+      const availableTimes = availableStudyScheduleInput
+        .map((schedule) => `${schedule.day}: ${schedule.timeRanges.map((time) => `${time.startTime} - ${time.endTime}`).join(', ')}`)
+        .join('\n'); // 학습 가능 시간으로 요일: 시작시간 - 종료시간 배열로 파싱
+      const reviewDay = reviewDays.join(',');
+      const missedPlanDay = missedPlanDays.join(',');
+      const subjectsPrompt = subjects.map(this.formatSubject).join('\n\n');
 
-      const examGoals = createStudyPlanInput.examContentInput.map((exam) => exam.examcontent).join(', ');
+      console.log('title:', title); //title확인 왜이러니 너는 좀
+      const promptData = {
+        studyPeriod,
+        availableTimes,
+        learningStyle,
+        reviewDay,
+        missedPlanDay,
+        subjectsPrompt,
+      };
 
-      const books = createStudyPlanInput.studyBookInput
-        .map((book) => `교재명: ${book.bookName}, 과목명: ${book.subject}, 목차: ${book.bookIndex}, 회독 횟수: ${book.bookReview}`)
-        .join('\n');
-
-      const prompt = `
-        당신은 전문 학습 플래너입니다.
-        다음 정보를 기반으로 학습 계획을 세워주세요:
-        - 학습 기간: ${createStudyPlanInput.studyPeriod}
-        - 공부 가능 시간: ${availableTimes}
-        - 목표 점수: ${examGoals}
-        - 학업 수준: ${createStudyPlanInput.studyLevel}
-        - 교재 정보:
-        ${books}
-        - 복습 요일: ${createStudyPlanInput.reviewDays.join(', ')}
-        - 미시행 계획 수행일: ${createStudyPlanInput.missedPlanDay.join(', ')}
-        다음 조건을 반드시 지켜야 합니다:
-        1. 전체 학습 기간 동안 하루도 빠짐없이 날짜별 계획을 생성해야 합니다.
-        2. 각 날짜는 아래 항목들을 포함하는 JSON 배열 형식으로만 작성하세요:
-           - date (예: 2025-04-20)
-           - startTime (예: 09:00)
-           - endTime (예: 12:00)
-           - subject (예: 수학)
-           - content (예: 교재명 Chapter x 페이지 범위)
-        3. 학습 계획의 현실성을 반드시 고려해야 합니다:
-           - 과목별 학습 균형을 유지
-        4. 교재의 요청한 반복 회독수만큼만 진행해야 합니다.
-           - 사용자가 요청한 회독수만큼만 계획을 생성해주세요
-        5. 요일별 학습 계획은 정렬된 순서로 작성하고, 날짜를 절대 생략하지 마세요.
-        6. 휴식일 없이 매일 학습이 포함되어야 합니다.
-         응답은 반드시 JSON 배열 형식만 사용하세요. 객체나 설명은 포함하지 마세요.
-      `;
-
+      const findPrompt = await this.findChatGptPrompt({ promptName });
+      const compilePrompt = Handlebars.compile(findPrompt);
+      const prompt = compilePrompt(promptData);
+      console.log(prompt);
       const response = await openai.chat.completions.create({
         model: 'gpt-4',
         messages: [
           {
             role: 'system',
-            content: '당신은 사용자의 학습 정보를 바탕으로 하루 단위의 학습 계획을 JSON 형식으로 작성하는 AI입니다. 오직 JSON만 응답해주세요.',
+            content: '당신은 사용자의 학습 정보를 바탕으로 하루 단위의 학습 계획을 JSON 형식으로 작성하는 AI입니다. 다음 구조에서 절대 벗어나지 마라: 응답은 반드시 JSON 배열 형식으로만 작성하세요. 각 객체는 다음 필드를 포함해야 합니다: - startTime: ISO 8601 UTC 형식의 문자열 (예: "2025-05-30T05:00:00.000Z"), null 값 불가 - endTime: ISO 8601 UTC 형식의 문자열 (예: "2025-05-30T07:00:00.000Z"), null 값 불가 - subject: 문자열, null 값 불가 - content: 문자열, null 값 불가'
           },
           {
             role: 'user',
@@ -83,6 +73,7 @@ export class StudyPlansService {
       });
 
       const studyPlanText = response.choices[0].message.content;
+      console.log('OpenAI 응답 원문:', studyPlanText);
       let scheduleData;
       try {
         scheduleData = JSON.parse(studyPlanText);
@@ -91,62 +82,83 @@ export class StudyPlansService {
         throw new Error('OpenAI 응답 형식에 오류가 있습니다.');
       }
 
-      // 응답 데이터가 비어있을 경우 처리
       if (!scheduleData || scheduleData.length === 0) {
         throw new Error('OpenAI 응답에 학습 계획 정보가 없습니다.');
       }
 
-      // 학습 계획 기간 처리
-      const [startDateStr, endDateStr] = createStudyPlanInput.studyPeriod.split(' to ');
-      const startDate = new Date(startDateStr);
-      const endDate = new Date(endDateStr);
-
-      // 과목 정보 준비
-      const subjectNames = [...new Set(createStudyPlanInput.studyBookInput.map((book) => book.subject))];
-      const subjectEntities: Subject[] = await Promise.all(subjectNames.map((name) => this.subjectService.findOrCreateByName(name)));
-
-      // StudyPlan 객체 생성
       const studyPlan = this.studyPlanRepository.create({
-        title: title,
-        studyGoal: createStudyPlanInput.studyLevel,
-        userId: userId,
+        title,
+        studyPeriod,
+        user: { id: userId },
         createdAt: new Date(),
         updatedAt: new Date(),
       });
 
-      const savedStudyPlan = await this.studyPlanRepository.save(studyPlan);
+      const saveStudyPlan = await this.studyPlanRepository.save(studyPlan);
 
-      // StudySchedule 객체 저장
-      const schedulePromises = scheduleData.map(async (scheduleItem) => {
-        const schedule = this.studyScheduleRepository.create({
-          startTime: scheduleItem.startTime,
-          endTime: scheduleItem.endTime,
-          subject: scheduleItem.subject,
-          content: scheduleItem.content,
-          date: scheduleItem.date,
-          completed: false,
-          studyPlan: savedStudyPlan, // StudyPlan과 연결
-        });
-        await this.studyScheduleRepository.save(schedule);
-      });
+      // 1. GPT 응답에 들어있는 과목명 다 뽑기
+      const subjectTitles = [...new Set(scheduleData.map((s) => s.subject))] as string[];
 
-      // 모든 스케줄 저장 후 완료
-      await Promise.all(schedulePromises);
 
-      // StudyPlan 반환 시 스케줄 포함
-      savedStudyPlan.schedules = await this.studyScheduleRepository.find({
-        where: { studyPlan: savedStudyPlan },
-        relations: ['studyPlan'],
-        order: {
-          date: 'ASC',
-          startTime: 'ASC', // 날짜 및 시간 기준으로 정렬
-        },
-      });
+      // 2. DB에서 해당 과목들 찾기
+      const subjectName = await this.subjectService.find({ subjectTitles });
+      // 3. 이름 → 엔티티 매핑 만들기
+      const subjectEntities = new Map(subjectName.map((s) => [s.subjectName, s]));
+      // 4. subjectEntity로 연결시켜버리기!~
+      const scheduleEntities = scheduleData.map((s) => ({
+        startTime: new Date(s.startTime),
+        endTime: new Date(s.endTime),
+        content: s.content,
+        user: { id: userId },
+        studyPlan: studyPlan,
+        subject:subjectEntities.get(s.subject), // 여기가 핵심!
+      }));
 
-      return savedStudyPlan;
+      const savedSchedules = await this.studyScheduleRepository.save(scheduleEntities);
+      saveStudyPlan.schedules = savedSchedules;
+      return saveStudyPlan
     } catch (error) {
       console.error('학습 계획 생성 중 오류 발생:', error);
       throw new Error('학습 계획 생성에 실패했습니다.');
     }
+  }
+
+  async findChatGptPrompt({ promptName }: IStudyPlanServiceFindChatGptPrompt): Promise<string> {
+    const chatGptPrompt = await this.chatGptPrompt.findOne({ where: { promptName} });
+    if ( !chatGptPrompt || !chatGptPrompt.promptText) throw new Error('없는 프롬프트입니다.');
+    console.log(chatGptPrompt.promptText);
+    return chatGptPrompt.promptText;
+  }
+
+  formatSubject(subjects) {
+    const books = subjects.studyBookInput.map((book) => `교재명:${book.bookName}, 목차:${book.bookIndex}, 목표회독수:${book.bookReview}`).join('\n');
+    const exams = subjects.examContentInput
+      .map(
+        (exam) =>
+          `시험범위:${exam.examcontent}, 직전시험성적:${exam.examLastScore}, 목표점수:${exam.examGoalScore}, 시험일정:${exam.examStartDay}
+      `,
+      )
+      .join('\n');
+    return ` 
+      과목: ${subjects.subject}
+      학업수준: ${subjects.studyLevel}
+      교재:
+      ${books}
+      시험정보:
+      ${exams}
+      `.trim();
+  }
+
+  async findAll({user}:IStudyPlanServiceFindStudyPlans):Promise<StudyPlan[]>{
+    return await this.studyPlanRepository.find(
+      {where:{user:{id:user.id}, }})}
+
+
+  async findOne({studyPlanId, user}: IStudyPlanServiceFindStudyPlan):Promise<StudyPlan>{
+    return await this.studyPlanRepository.findOne(
+      {where:
+        {user:{id:user.id},id:studyPlanId},
+        relations:['schedules', 'schedules.subject']
+      })
   }
 }

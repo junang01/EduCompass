@@ -15,6 +15,8 @@ import { SubjectModule } from './apis/subject/subject.module';
 import { PassportModule } from '@nestjs/passport';
 import { ScheduleModule } from '@nestjs/schedule';
 import { User } from './apis/users/entities/user.entity';
+import { AdminUserSeed } from './apis/auth/seeds/admin-user.seed';
+import { StudyScheduleModule } from './apis/studySchedule/studySchedule.module';
 
 @Module({
   imports: [
@@ -54,7 +56,9 @@ import { User } from './apis/users/entities/user.entity';
     StudyStatusModule,
     NoticeModule,
     SubjectModule,
+    StudyScheduleModule,
     TypeOrmModule.forFeature([User]),
   ],
+  providers: [AdminUserSeed],
 })
 export class AppModule {}

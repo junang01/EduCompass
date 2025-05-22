@@ -14,64 +14,64 @@ import { OverallStatsResponse } from './dto/overall-stats.response';
 export class StudyStatusResolver {
   constructor(private readonly studyStatusService: StudyStatusService) {}
 
-  @UseGuards(GqlAuthGuard)
-  @Query(() => [StudyStatus])
-  async studyStatuses(
-    @CurrentUser() user: User, //
-    @Args() args: StudyStatusArgs,
-  ): Promise<StudyStatus[]> {
-    return this.studyStatusService.findAll(user.id, args);
-  }
+  // @UseGuards(GqlAuthGuard)
+  // @Query(() => [StudyStatus])
+  // async studyStatuses(
+  //   @CurrentUser() user: User, //
+  //   @Args() args: StudyStatusArgs,
+  // ): Promise<StudyStatus[]> {
+  //   return this.studyStatusService.findAll(user.id, args);
+  // }
 
-  @UseGuards(GqlAuthGuard)
-  @Query(() => StudyStatus)
-  async studyStatus(
-    @Args('id', { type: () => Int }) id: number, //
-    @CurrentUser() user: User,
-  ): Promise<StudyStatus> {
-    return this.studyStatusService.findOne(id, user.id);
-  }
+  // @UseGuards(GqlAuthGuard)
+  // @Query(() => StudyStatus)
+  // async studyStatus(
+  //   @Args('id', { type: () => Int }) id: number, //
+  //   @CurrentUser() user: User,
+  // ): Promise<StudyStatus> {
+  //   return this.studyStatusService.findOne(id, user.id);
+  // }
 
-  @UseGuards(GqlAuthGuard)
-  @Mutation(() => StudyStatus)
-  async createStudyStatus(
-    @Args('createStudyStatusInput')
-    createStudyStatusInput: CreateStudyStatusInput,
-    @CurrentUser() user: User,
-  ): Promise<StudyStatus> {
-    const result = await this.studyStatusService.create({
-      ...createStudyStatusInput,
-      userId: user.id,
-    });
-    return result;
-  }
+  // @UseGuards(GqlAuthGuard)
+  // @Mutation(() => StudyStatus)
+  // async createStudyStatus(
+  //   @Args('createStudyStatusInput')
+  //   createStudyStatusInput: CreateStudyStatusInput,
+  //   @CurrentUser() user: User,
+  // ): Promise<StudyStatus> {
+  //   const result = await this.studyStatusService.create({
+  //     ...createStudyStatusInput,
+  //     userId: user.id,
+  //   });
+  //   return result;
+  // }
 
-  @UseGuards(GqlAuthGuard)
-  @Mutation(() => StudyStatus)
-  async updateStudyStatus(
-    @Args('updateStudyStatusInput')
-    updateStudyStatusInput: UpdateStudyStatusInput,
+  // @UseGuards(GqlAuthGuard)
+  // @Mutation(() => StudyStatus)
+  // async updateStudyStatus(
+  //   @Args('updateStudyStatusInput')
+  //   updateStudyStatusInput: UpdateStudyStatusInput,
 
-    @CurrentUser() user: User,
-  ): Promise<StudyStatus> {
-    return this.studyStatusService.update(updateStudyStatusInput.id, updateStudyStatusInput, user.id);
-  }
+  //   @CurrentUser() user: User,
+  // ): Promise<StudyStatus> {
+  //   return this.studyStatusService.update(updateStudyStatusInput.id, updateStudyStatusInput, user.id);
+  // }
 
-  @UseGuards(GqlAuthGuard)
-  @Mutation(() => Boolean)
-  async deleteStudyStatus(@Args('id', { type: () => Int }) id: number, @CurrentUser() user: User): Promise<boolean> {
-    return this.studyStatusService.delete(id, user.id);
-  }
+  // @UseGuards(GqlAuthGuard)
+  // @Mutation(() => Boolean)
+  // async deleteStudyStatus(@Args('id', { type: () => Int }) id: number, @CurrentUser() user: User): Promise<boolean> {
+  //   return this.studyStatusService.delete(id, user.id);
+  // }
 
-  @UseGuards(GqlAuthGuard)
-  @Query(() => StudyStatus)
-  async subjectStats(@Args('subject') subject: string, @CurrentUser() user: User): Promise<StudyStatus> {
-    return this.studyStatusService.getSubjectStats(user.id, subject) as unknown as StudyStatus;
-  }
+  // @UseGuards(GqlAuthGuard)
+  // @Query(() => StudyStatus)
+  // async subjectStats(@Args('subject') subject: string, @CurrentUser() user: User): Promise<StudyStatus> {
+  //   return this.studyStatusService.getSubjectStats(user.id, subject) as unknown as StudyStatus;
+  // }
 
-  @UseGuards(GqlAuthGuard)
-  @Query(() => OverallStatsResponse)
-  async overallStats(@CurrentUser() user: User): Promise<OverallStatsResponse> {
-    return this.studyStatusService.getOverallStats(user.id);
-  }
+  // @UseGuards(GqlAuthGuard)
+  // @Query(() => OverallStatsResponse)
+  // async overallStats(@CurrentUser() user: User): Promise<OverallStatsResponse> {
+  //   return this.studyStatusService.getOverallStats(user.id);
+  // }
 }

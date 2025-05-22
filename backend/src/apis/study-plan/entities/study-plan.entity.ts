@@ -1,5 +1,5 @@
 import { ObjectType, Field, ID } from '@nestjs/graphql';
-import { Entity, Column, PrimaryGeneratedColumn, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, OneToMany, ManyToOne, JoinColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { StudySchedule } from 'src/apis/studySchedule/entities/studySchedule.entity';
 import { Subject } from 'src/apis/subject/entities/subject.entity';
 import { User } from 'src/apis/users/entities/user.entity';
@@ -17,30 +17,22 @@ export class StudyPlan {
 
   @Field(() => String)
   @Column()
-  studyGoal: string;
+  studyPeriod: string;
 
-  @Field(() => Number)
-  @Column()
-  userId: number;
-
-  @JoinColumn()
   @Field(() => [StudySchedule])
   @OneToMany(() => StudySchedule, (schedule) => schedule.studyPlan)
   schedules: StudySchedule[];
 
   @Field()
-  @Column({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
+  @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
 
   @Field()
-  @Column({
-    type: 'datetime',
-    default: () => 'CURRENT_TIMESTAMP',
-    onUpdate: 'CURRENT_TIMESTAMP',
-  })
+  @UpdateDateColumn({ type: 'timestamp' })
   updatedAt: Date;
 
-  @JoinColumn()
+  @JoinColumn({name: 'userId' })
+  @Field(() => User)
   @ManyToOne(() => User, (user) => user.studyPlans)
   user: User;
 }

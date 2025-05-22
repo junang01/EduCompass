@@ -1,4 +1,6 @@
+import { IContext } from 'src/commons/interfaces/context';
 import { CreateStudyPlanInput } from '../dto/create-study-plan.input';
+import { User } from 'src/apis/users/entities/user.entity';
 
 export interface IStudyPlan {
   id?: number;
@@ -24,9 +26,20 @@ export interface IStudyPlanService {
   findBySubject(subject_seq: number, userId: number): Promise<IStudyPlan[]>;
 }
 
-
 export interface ICreateStudyPlanService {
   userId: number;
   createStudyPlanInput: CreateStudyPlanInput;
 }
 
+export interface IStudyPlanServiceFindChatGptPrompt {
+  promptName: string;
+}
+
+export interface IStudyPlanServiceFindStudyPlans{
+  user:User
+}
+
+export interface IStudyPlanServiceFindStudyPlan{
+  studyPlanId: number
+  user:User
+}
