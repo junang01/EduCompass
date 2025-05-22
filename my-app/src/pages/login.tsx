@@ -11,6 +11,8 @@ const LOGIN_MUTATION = gql`
         id
         email
         name
+        grade
+        school
       }
     }
   }
@@ -95,16 +97,18 @@ const LoginPage = () => {
             <label htmlFor="autolog" className="autolog">
               자동 로그인
             </label>
-            <div className="find">
-              <div className="findemail">
-                <a href="#">아이디 찾기</a>
+            <div className="findJoinDiv">
+              <div className="find">
+                <div className="findemail">
+                  <a href="#">아이디 찾기</a>
+                </div>
+                <div className="findpw">
+                  <a href="#">비밀번호 찾기</a>
+                </div>
               </div>
-              <div className="findpw">
-                <a href="#">비밀번호 찾기</a>
+              <div className="gojoin">
+                <Link to="/join">회원이 아니신가요? 회원가입 하러가기</Link>
               </div>
-            </div>
-            <div className="gojoin">
-              <Link to="/join">회원이 아니신가요? 회원가입 하러가기</Link>
             </div>
             <button type="button" className="loginBtn" onClick={handleLogin}>
               로그인하기

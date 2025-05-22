@@ -37,8 +37,8 @@ const BmainPage = () => {
             </Link>
           </h2>
           <ul>
-            <li><Link to="/planStart">계획 캘린더</Link></li>
-            <li><Link to="/makeplan">AI 계획 생성</Link></li>
+            <li><Link to="/calendar">계획 캘린더</Link></li>
+            <li><Link to="/planStart">AI 계획 생성</Link></li>
             <li><Link to="/status">학습 현황</Link></li>
             <li><Link to="/books">교재 추천</Link></li>
             <li><Link to="/mypage">마이페이지</Link></li>
@@ -111,7 +111,10 @@ const BmainPage = () => {
                   <br />세워보세요 !
                 </p>
                 <FontAwesomeIcon className="icon" icon={faCalendarPlus} size="2x" />
-                <div className="makeplan_overlay">
+                <div 
+                  className="makeplan_overlay"
+                  onClick={() => (window.location.href = "makeplan.tsx")}
+                >
                   <h2>계획 생성 바로가기</h2>
                 </div>
               </div>

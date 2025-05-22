@@ -9,6 +9,9 @@ import JoinCompletePage from "./pages/joinComplete";
 import BmainPage from "./pages/bmain";
 import MakeplanStartPage from './pages/makeplanStart';
 import MyPage from './pages/MyPage';
+import SurveyMainPage from './pages/planSurvey/SurveyMainPage';
+import StatusPage from './pages/Status';
+import CalendarPage from './pages/CalendarPage';
 
 function App() {
   return (
@@ -22,6 +25,9 @@ function App() {
           <Route path="/main" element={<BmainPage />} />
           <Route path="/planStart" element={<MakeplanStartPage />} />
           <Route path="/mypage" element={<MyPage />} />
+          <Route path="/planPage" element={<SurveyMainPage />}></Route>
+          <Route path='/status' element={<StatusPage />}></Route>
+          <Route path='/calendar' element={<CalendarPage />}></Route>
         </Routes>
       </BrowserRouter>
     </ApolloProvider>

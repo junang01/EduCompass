@@ -71,26 +71,29 @@ nav ul li a.active {
 
 
 /* 메인 박스 */
-.main_container {
+.mypage_container {
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: calc(100vh - 70px);
+  width: 100%;
+  height: 100%;
   background-color: #f4f4f4; 
-  padding: 40px 0;
+  padding-top: 60px;
+  box-sizing: border-box;
 }
 
 /* 메인 박스 내부 */
-.main_container_wrap {
+.mypage_container_wrap {
   display: flex;
+  flex-direction: row;
   width: 80%;
-  max-width: 1200px;
+  height: 100%;
+  justify-content: space-between;
 }
 
 /* 사이드바 스타일 */
-.sidebar {
+.mypage-sidebar {
   width: 250px;
-  height: 90%;
   background: #f4f4f4; 
   padding: 20px;
   display: flex;
@@ -117,7 +120,6 @@ nav ul li a.active {
   border-radius: 5px;
   display: flex;
   justify-content: space-between;
-  align-items: center;
   border: none;
   cursor: pointer;
 }
@@ -149,17 +151,14 @@ nav ul li a.active {
   border: none;
   box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.1); 
   position: absolute;
-  bottom: 0;
-  left: 20px; 
+  bottom: 20px;
+  left: 20px;
 }
 
 
 /* 회원정보 섹션 스타일 */
 .content {
-  width: calc(100% - 250px); 
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  width: 80%; 
   padding: 20px;
 }
 
@@ -179,7 +178,7 @@ nav ul li a.active {
 }
 
 /* 회원정보 제목 */
-h2 {
+.info-box h2 {
   font-size: 22px;
   margin-bottom: 20px;
   font-weight: bold;

@@ -1,39 +1,52 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import "../css/makeplanStartstyle.css";
+import { Link, useNavigate } from "react-router-dom";
 
 const MakeplanStartPage = () => {
+
+  const [username, setUsername] = useState<string>("");
+  
+    useEffect(() => {
+      const userData = localStorage.getItem("user");
+      if (userData) {
+        const user = JSON.parse(userData);
+        setUsername(user.name);
+      }
+    }, []);
+
   return (
     <>
       {/* 상단 네비게이션 */}
       <header>
         <nav>
           <h2>
-            <a href="bmain.tsx">
+            <Link to = "/main">
               Edu
               <br />
               Compass
-            </a>
+            </Link>
           </h2>
           <ul>
-            <li><a href="#">계획 캘린더</a></li>
-            <li><a href="#">AI 계획 생성</a></li>
-            <li><a href="#">학습 현황</a></li>
-            <li><a href="#">교재 추천</a></li>
-            <li><a href="#">마이페이지</a></li>
+            <li><Link to="/planStart">계획 캘린더</Link></li>
+            <li><Link to="/makeplanStart">AI 계획 생성</Link></li>
+            <li><Link to="/status">학습 현황</Link></li>
+            <li><Link to="/books">교재 추천</Link></li>
+            <li><Link to="/mypage">마이페이지</Link></li>
           </ul>
-          <div className="info">
-            <div className="info">
-              <a href="#.tsx">OOO님</a>
+          <div className="log">
+            <div className="login">
+              <Link to="/login">{username ? `${username}님` : "로그인"}</Link>
             </div>
-            <div className="logout">
-              <a href="amain.tsx">logout</a>
+            <div className="join">
+              <Link to="/">logout</Link>
             </div>
           </div>
         </nav>
       </header>
 
       {/* 본문 영역 */}
-      <div className="main_container">
-        <div className="main_container_center">
+      <div className="planstart_container">
+        <div className="planstart_center">
           <div className="container_left">
             <img src="../img/compass.png" alt="compass" />
           </div>
@@ -53,7 +66,7 @@ const MakeplanStartPage = () => {
             </div>
 
             <div className="makeBtn_box">
-              <button>계획 생성 시작</button>
+              <button className="makeStartBtn"><Link to="/planPage">계획 생성 시작</Link></button>
             </div>
           </div>
         </div>

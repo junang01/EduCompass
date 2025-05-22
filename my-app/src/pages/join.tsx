@@ -124,7 +124,11 @@ const JoinPage = () => {
 
     try {
       const { data } = await createUser({ variables: { input: userData } });
-      if (data?.createUser) navigate("/joinComplete");
+      if (data?.createUser) {
+        // 회원가입 성공 시 사용자 정보를 localStorage에 저장
+        localStorage.setItem("user", JSON.stringify(userData));
+        navigate("/joinComplete");
+      }
     } catch (error) {
       alert("회원가입 실패: 다시 시도해주세요.");
     }

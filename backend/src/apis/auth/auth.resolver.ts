@@ -10,6 +10,13 @@ import { JwtService } from '@nestjs/jwt';
 import { User } from '../users/entities/user.entity';
 import { AdminGuard } from './guards/admin.guard';
 
+interface JwtPayload {
+  sub?: string;
+  iat?: number;
+  exp?: number;
+  [key: string]: any;
+}
+
 @ObjectType()
 export class AuthStatus {
   @Field()
@@ -80,7 +87,7 @@ export class AuthResolver {
   async isTokenExpired(@Context() context) {
     const authHeader = context.req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return true; // 토큰이 없으면 만료된 것으로 간주
+      return true; // 토큰이 없으면 만료
     }
 
     const token = authHeader.substring(7);
