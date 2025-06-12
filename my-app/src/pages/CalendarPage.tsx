@@ -64,21 +64,27 @@ const CalendarPage = () => {
     if (!selectedDate || !title.trim() || !startTime || !endTime) return;
 
     const dateString = moment(selectedDate).format("YYYY-MM-DD");
-    const start = new Date(`${dateString}T${startTime}`);
-    const end = new Date(`${dateString}T${endTime}`);
+    const start = moment(`${dateString}T${startTime}`).toDate();
+    const end = moment(`${dateString}T${endTime}`).toDate();
+    console.log("추가 이벤트 확인:", { start, end });
 
     try {
-      const res = await axios.post("/api/events", { title, start, end });
+      const res = await axios.post("http://localhost:4000/api/events", { title, start, end });
+      console.log("저장된 이벤트:", res.data);
       const newEvent = res.data;
-      setEvents([...events, {
-        id: newEvent.id,
-        title: newEvent.title,
-        start: new Date(newEvent.start),
-        end: new Date(newEvent.end),
-      }]);
+      setEvents([
+        ...events,
+        {
+          id: newEvent.id,
+          title: newEvent.title,
+          start: moment(newEvent.start).toDate(),
+          end: moment(newEvent.end).toDate(),
+        },
+      ]);
     } catch (err) {
       console.error("일정 추가 실패:", err);
     }
+
 
     setShowModal(false);
     setTitle("");
@@ -102,8 +108,8 @@ const CalendarPage = () => {
     const updated = {
       id: selectedEvent.id,
       title: editTitle,
-      start: new Date(`${dateString}T${editStartTime}`),
-      end: new Date(`${dateString}T${editEndTime}`),
+      start: moment(`${dateString}T${editStartTime}`).toDate(),
+      end: moment(`${dateString}T${editEndTime}`).toDate(),
     };
 
     try {
@@ -133,62 +139,116 @@ const CalendarPage = () => {
 
   return (
     <>
-      {/* ...헤더, 사이드바 생략... */}
+      <header className="survey-header">
+        <nav>
+          <h2>
+            <a href="#">
+              Edu<br />Compass
+            </a>
+          </h2>
+          <ul>
+            <li><Link to="/calendar">계획 캘린더</Link></li>
+            <li><Link to="/planStart">AI 계획 생성</Link></li>
+            <li><Link to="/status">학습 현황</Link></li>
+            <li><Link to="/books">교재 추천</Link></li>
+            <li><Link to="/mypage">마이페이지</Link></li>
+          </ul>
+          <div className="log">
+            <div className="login">
+              <Link to="/login">{username ? `${username}님` : "로그인"}</Link>
+            </div>
+            <div className="join">
+              <Link to="/">logout</Link>
+            </div>
+          </div>
+        </nav>
+      </header>
 
-      <div className="calendar_center">
-        <Calendar
-          localizer={localizer}
-          events={events}
-          startAccessor="start"
-          endAccessor="end"
-          views={["month", "week", "day"]}
-          defaultView="month"
-          view={view}
-          onView={(newView) => setView(newView as View)}
-          date={date}
-          onNavigate={(newDate) => setDate(newDate)}
-          selectable
-          onSelectSlot={(slotInfo) => {
-            setSelectedDate(slotInfo.start);
-            setShowModal(true);
-          }}
-          onSelectEvent={handleEventClick}
-          style={{ height: "100%" }}
-        />
+      <div className="calendar_container">
+        <div className="sidebar">
+          <div className="sidebar-title">계획 캘린더</div>
+          <ul className="sidebar-menu">
+            <li className="active"><a href="#">캘린더 조회</a></li>
+            <hr />
+            <li className="active"><a href="#">캘린더 조정</a></li>
+            <hr />
+            <li className="active"><a href="#">조정 내용 요약</a></li>
+            <hr />
+          </ul>
+        </div>
 
-        {/* 추가 모달 */}
-        {showModal && selectedDate && (
-          <div className="calendar-modal-overlay">
-            <div className="calendar-modal">
-              <input placeholder="계획 이름" value={title} onChange={(e) => setTitle(e.target.value)} />
-              <div className="time-range">
-                <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} /> ~
-                <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
+        <div className="calendar_center">
+          <Calendar
+            localizer={localizer}
+            events={events}
+            startAccessor="start"
+            endAccessor="end"
+            views={["month", "week", "day"]}
+            defaultView="month"
+            view={view}
+            onView={(newView) => setView(newView as View)}
+            date={date}
+            onNavigate={(newDate) => setDate(newDate)}
+            selectable
+            onSelectSlot={(slotInfo) => {
+              setSelectedDate(slotInfo.start);
+              setShowModal(true);
+            }}
+            onSelectEvent={handleEventClick}
+            style={{ height: "100%" }}
+          />
+
+          {showModal && selectedDate && (
+            <div className="calendar-modal-overlay">
+              <div className="calendar-modal">
+                <div className="modal-header">
+                  <span className="modal-header-title">계획 추가</span>
+                </div>
+
+                <input
+                  type="text"
+                  placeholder="계획 이름 입력"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="modal-input"
+                />
+
+                <div className="modal-date-display">
+                  {moment(selectedDate).format("YYYY-MM-DD ddd").toUpperCase()}
+                </div>
+
+                <div className="time-range">
+                  <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+                  <span>~</span>
+                  <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
+                </div>
+
+                <div className="calendar-modal-actions">
+                  <button onClick={() => setShowModal(false)}>취소</button>
+                  <button onClick={handleSave}>저장</button>
+                </div>
               </div>
-              <button onClick={() => setShowModal(false)}>취소</button>
-              <button onClick={handleSave}>저장</button>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* 수정 모달 */}
-        {showDetailModal && selectedEvent && (
-          <div className="calendar-detail-panel">
-            <input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
-            <input
-              type="date"
-              value={moment(editDate).format("YYYY-MM-DD")}
-              onChange={(e) => setEditDate(new Date(e.target.value))}
-            />
-            <div className="detail-time-inputs">
-              <input type="time" value={editStartTime} onChange={(e) => setEditStartTime(e.target.value)} /> ~
-              <input type="time" value={editEndTime} onChange={(e) => setEditEndTime(e.target.value)} />
+          {showDetailModal && selectedEvent && (
+            <div className="calendar-detail-panel">
+              <input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
+              <input
+                type="date"
+                value={moment(editDate).format("YYYY-MM-DD")}
+                onChange={(e) => setEditDate(new Date(e.target.value))}
+              />
+              <div className="detail-time-inputs">
+                <input type="time" value={editStartTime} onChange={(e) => setEditStartTime(e.target.value)} /> ~
+                <input type="time" value={editEndTime} onChange={(e) => setEditEndTime(e.target.value)} />
+              </div>
+              <button onClick={handleDelete}>삭제</button>
+              <button onClick={handleEditSave}>수정</button>
+              <button onClick={() => setShowDetailModal(false)}>완료</button>
             </div>
-            <button onClick={handleDelete}>삭제</button>
-            <button onClick={handleEditSave}>수정</button>
-            <button onClick={() => setShowDetailModal(false)}>완료</button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </>
   );

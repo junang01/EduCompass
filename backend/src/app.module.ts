@@ -12,32 +12,38 @@ import { StudyPlanModule } from './apis/study-plan/study-plans.module';
 import { StudyStatusModule } from './apis/study-status/study-status.module';
 import { NoticeModule } from './apis/notice/notice.module';
 import { SubjectModule } from './apis/subject/subject.module';
+import { StudyScheduleModule } from './apis/studySchedule/studySchedule.module';
 import { PassportModule } from '@nestjs/passport';
 import { ScheduleModule } from '@nestjs/schedule';
 import { User } from './apis/users/entities/user.entity';
 import { AdminUserSeed } from './apis/auth/seeds/admin-user.seed';
-import { StudyScheduleModule } from './apis/studySchedule/studySchedule.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    TypeOrmModule.forRoot({
-      type: process.env.DATABASE_TYPE as 'mysql',
-      host: process.env.DATABASE_HOST,
-      port: Number(process.env.DATABASE_PORT),
-      username: process.env.DATABASE_USERNAME,
-      password: process.env.DATABASE_PASSWORD,
-      database: process.env.DATABASE_DATABASE,
-      entities: [__dirname + '/apis/**/*.entity.*'], //entity부분을 연결하기 위해 일일이 하나씩 다 입력하는게 아니라 상위 파일주소를 입력해 순회하면서 entity로 시작하는 파일을 가져오게 한다.
-      synchronize: true,
-      logging: true,
+
+    // DB 설정
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        type: 'mysql',
+        host: configService.get('DB_HOST') || 'localhost',
+        port: configService.get('DB_PORT') || 3306,
+        username: configService.get('DB_USERNAME') || 'root',
+        password: configService.get('DB_PASSWORD') || '1234',
+        database: configService.get('DB_DATABASE') || 'new_db_edu',
+        entities: [__dirname + '/**/*.entity{.ts,.js}'],
+        synchronize: false,
+      }),
     }),
+
+    // GraphQL
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
       autoSchemaFile: true,
       playground: true,
       introspection: true,
-      // 명시적으로 context에 req 객체 추가해야댐
       context: ({ req }) => ({ req }),
       formatError: (error) => {
         console.error(error);
@@ -45,9 +51,12 @@ import { StudyScheduleModule } from './apis/studySchedule/studySchedule.module';
       },
       resolvers: { DateTime: GraphQLISODateTime },
     }),
+
+    // 세션 / 일정
     PassportModule.register({ session: true }),
     ScheduleModule.forRoot(),
 
+    // Feature 모듈들
     UsersModule,
     AuthModule,
     BookModule,
@@ -57,8 +66,11 @@ import { StudyScheduleModule } from './apis/studySchedule/studySchedule.module';
     NoticeModule,
     SubjectModule,
     StudyScheduleModule,
+
+    // User 엔티티 등록
     TypeOrmModule.forFeature([User]),
   ],
+  controllers: [], // ✅ Swagger 오류 방지를 위해 명시적 선언 (비어 있어도 필요함)
   providers: [AdminUserSeed],
 })
 export class AppModule {}

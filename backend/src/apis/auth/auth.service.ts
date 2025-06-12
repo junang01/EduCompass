@@ -20,6 +20,11 @@ import * as crypto from 'crypto';
  */
 export type SanitizedUser = Omit<User, 'password'>;
 
+interface DecodedToken {
+  exp: number;
+  [key: string]: any;
+}
+
 /**
  * 인증 관련 서비스
  * 사용자 인증, 로그인, 이메일 인증 등의 기능을 처리
@@ -365,7 +370,7 @@ export class AuthService {
    */
   async blacklistRefreshToken(token: string): Promise<void> {
     // 토큰에서 만료 시간 추출
-    const decoded = this.jwtService.decode(token);
+    const decoded = this.jwtService.decode(token) as DecodedToken;
     const expiryDate = new Date(decoded.exp * 1000); // 초를 밀리초로 변환
 
     // 블랙리스트에 토큰 추가

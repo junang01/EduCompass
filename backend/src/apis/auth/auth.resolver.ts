@@ -10,7 +10,7 @@ import { JwtService } from '@nestjs/jwt';
 import { User } from '../users/entities/user.entity';
 import { AdminGuard } from './guards/admin.guard';
 
-interface JwtPayload {
+interface DecodedToken {
   sub?: string;
   iat?: number;
   exp?: number;
@@ -66,7 +66,7 @@ export class AuthResolver {
    */
   @Query(() => TokenInfo)
   async tokenInfo(@Args('token') token: string) {
-    const decoded = this.jwtService.decode(token);
+    const decoded = this.jwtService.decode(token) as DecodedToken;
     const currentTime = Math.floor(Date.now() / 1000);
 
     return {
@@ -93,7 +93,8 @@ export class AuthResolver {
     const token = authHeader.substring(7);
     try {
       // 토큰 디코딩 및 만료 시간 확인
-      const decoded = this.jwtService.decode(token);
+      const decoded = this.jwtService.decode(token) as DecodedToken;
+
       if (!decoded || !decoded.exp) {
         return true;
       }

@@ -4,16 +4,18 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import * as session from 'express-session';
 import { AdminUserSeed } from './apis/auth/seeds/admin-user.seed';
-
+import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  app.setGlobalPrefix('api');
+
   app.enableCors({
-    origin: 'http://localhost:3000', // 프론트엔드가 실행 중인 주소
-    credentials: true,               // 필요한 경우 쿠키 허용
+    origin: 'http://localhost:3000',
+    credentials: true,
   });
-  
+
   app.use(
     session({
       secret: 'secure_dev_secret',
@@ -21,22 +23,12 @@ async function bootstrap() {
       saveUninitialized: false,
     }),
   );
-  
-  const config = new DocumentBuilder()
-    .setTitle('Edu Compass API')
-    .setDescription('AI 기반 학습 관리 플랫폼 API')
-    .setVersion('1.0')
-    .addBearerAuth()
-    .build();
-    
-  const document = SwaggerModule.createDocument(app as any, config);
-  SwaggerModule.setup('api', app as any, document);
 
-  const adminUserSeed = app.get(AdminUserSeed);
-  await adminUserSeed.seed();
-  
+  app.useGlobalPipes(new ValidationPipe());
+
+  // ✅ 서버 실행 추가
   const port = 4000;
   await app.listen(port);
-  console.log(`Application is running on: http://localhost:${port}`);
+  console.log(`🚀 Application is running on: http://localhost:${port}`);
 }
 bootstrap();
