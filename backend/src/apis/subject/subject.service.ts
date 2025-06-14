@@ -50,12 +50,24 @@ export class SubjectService implements ISubjectService {
   }
 
   async find({ subjectTitles }: ISubjectServiceFindSubject): Promise<Subject[]> {
-    const subject = await this.subjectRepository.find({
-      where: {
-        subjectName: In(subjectTitles),
-      },
+    // 1. DB에서 존재하는 과목 조회
+    const existingSubjects = await this.subjectRepository.find({
+      where: { subjectName: In(subjectTitles) },
     });
-    if (!subject) throw new Error('찾는 과목이 없습니다.');
-    return subject;
+  
+    const existingTitles = existingSubjects.map((s) => s.subjectName);
+  
+    // 2. 없는 과목 찾아내기
+    const missingTitles = subjectTitles.filter((title) => !existingTitles.includes(title));
+  
+    // 3. 없는 과목이 있다면 create 메서드로 생성 후 저장
+    const newSubjects: Subject[] = [];
+    for (const title of missingTitles) {
+      const newSubject = await this.create(title);
+      newSubjects.push(newSubject);
+    }
+  
+    // 4. 전체 리턴 (기존 + 새로 생성된)
+    return [...existingSubjects, ...newSubjects];
   }
 }

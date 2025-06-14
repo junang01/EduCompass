@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { StudyPlan } from './entities/study-plan.entity';
@@ -11,15 +11,24 @@ import {z} from'zod';
 import { zodTextFormat } from "openai/helpers/zod";
 import { ChatGptPrompt } from './entities/chatGptPrompt.entity';  
 import Handlebars from 'handlebars';
-import { ICreateStudyPlanService, IStudyPlanServiceFindChatGptPrompt, IStudyPlanServiceFindStudyPlan, IStudyPlanServiceFindStudyPlans } from './interfaces/study-plan.interface';
+import { ICreateStudyPlanService, IStudyPlanServiceFindChatGptPrompt, IStudyPlanServiceFindSchedules, IStudyPlanServiceFindStudyPlan, IStudyPlanServiceFindStudyPlans, IStudyPlanServiceParseStudySchedule, IStudyPlanServiceUpdateSchedule } from './interfaces/study-plan.interface';
+import { StudyScheduleService } from '../studySchedule/studyschedule.service';
 
 
 dotenv.config();
 
+const studyPlanRespose = z.object({
+  startTime: z.string().datetime(),
+  endTime: z.string().datetime(),
+  subject: z.string().min(1),
+  content: z.string().min(1),
+})
+const StudyPlanResponseSchema = z.object({
+  newSchedules: z.array(studyPlanRespose),
+});
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
-
 @Injectable()
 export class StudyPlansService {
   constructor(
@@ -27,12 +36,14 @@ export class StudyPlansService {
     private readonly studyPlanRepository: Repository<StudyPlan>,
     @InjectRepository(StudySchedule)
     private readonly studyScheduleRepository: Repository<StudySchedule>,
+    private readonly studyScheduleService: StudyScheduleService,
     @InjectRepository(Subject)
     private readonly subjectRepository: Repository<Subject>,
     private readonly subjectService: SubjectService,
     @InjectRepository(ChatGptPrompt)
     private readonly chatGptPrompt: Repository<ChatGptPrompt>,
   ) {}
+  
 
   async createStudyPlan({ userId, createStudyPlanInput }: ICreateStudyPlanService): Promise<StudyPlan> {
     const promptName = '계획생성';
@@ -60,15 +71,6 @@ export class StudyPlansService {
       const prompt = compilePrompt(promptData);
       console.log(prompt);
 
-      const studyPlanRespose = z.object({
-        startTime: z.string().datetime(),
-        endTime: z.string().datetime(),
-        subject: z.string().min(1),
-        content: z.string().min(1),
-      })
-      const StudyPlanResponseSchema = z.object({
-        schedules: z.array(studyPlanRespose),
-      });
       const response = await openai.responses.parse({
         model:"gpt-4o",
         input:[
@@ -82,25 +84,12 @@ export class StudyPlansService {
           format: zodTextFormat(StudyPlanResponseSchema, "studyPlanText")
         },
       })
-      // const response = await openai.chat.completions.create({
-      //   model: 'gpt-4o',
-        
-      //   messages: [
-      //     {
-      //       role: 'system',
-      //       content: '당신은 사용자의 학습 정보를 바탕으로 하루 단위의 학습 계획을 JSON 형식으로 작성하는 AI입니다. 다음 구조에서 절대 벗어나지 마라: 응답은 반드시 JSON 배열 형식으로만 작성하세요. 각 객체는 다음 필드를 포함해야 합니다: - startTime: ISO 8601 UTC 형식의 문자열 (예: "2025-05-30T05:00:00.000Z"), null 값 불가 - endTime: ISO 8601 UTC 형식의 문자열 (예: "2025-05-30T07:00:00.000Z"), null 값 불가 - subject: 문자열, null 값 불가 - content: 문자열, null 값 불가'
-      //     },
-      //     {
-      //       role: 'user',
-      //       content: prompt,
-      //     },
-      //   ],
-      // });
 
-      const schedules= response.output_parsed;
-      console.log('OpenAI 응답 원문:', schedules);
+      const {newSchedules}= response.output_parsed;
+      console.log('OpenAI 응답 원문:', newSchedules);
+      
 
-      const scheduleData = schedules.schedules;
+      
       const studyPlan = this.studyPlanRepository.create({
         title,
         studyPeriod,
@@ -110,17 +99,26 @@ export class StudyPlansService {
       });
 
       const saveStudyPlan = await this.studyPlanRepository.save(studyPlan);
+      const savedSchedules = await this.parseStudySchedule({newSchedules, studyPlan, userId})
 
+      saveStudyPlan.schedules = savedSchedules;
+      return saveStudyPlan
+    } catch (error) {
+      console.error('학습 계획 생성 중 오류 발생:', error);
+      throw new Error('학습 계획 생성에 실패했습니다.');
+    }
+  }
+
+  async parseStudySchedule(scheduleData:IStudyPlanServiceParseStudySchedule){
+    const {newSchedules, userId, studyPlan} = scheduleData
       // 1. GPT 응답에 들어있는 과목명 다 뽑기
-      const subjectTitles = [...new Set(scheduleData.map((s) => s.subject))] as string[];
-
-
+      const subjectTitles = [...new Set(newSchedules.map((s) => s.subject))] as string[];
       // 2. DB에서 해당 과목들 찾기
       const subjectName = await this.subjectService.find({ subjectTitles });
       // 3. 이름 → 엔티티 매핑 만들기
       const subjectEntities = new Map(subjectName.map((s) => [s.subjectName, s]));
       // 4. subjectEntity로 연결시켜버리기!~
-      const scheduleEntities = scheduleData.map((s) => ({
+      const scheduleEntities = newSchedules.map((s) => ({
         startTime: new Date(s.startTime),
         endTime: new Date(s.endTime),
         content: s.content,
@@ -130,18 +128,80 @@ export class StudyPlansService {
       }));
 
       const savedSchedules = await this.studyScheduleRepository.save(scheduleEntities);
-      saveStudyPlan.schedules = savedSchedules;
-      return saveStudyPlan
-    } catch (error) {
-      console.error('학습 계획 생성 중 오류 발생:', error);
-      throw new Error('학습 계획 생성에 실패했습니다.');
+      return savedSchedules;
+  }
+  // 파싱하는 부분 공통 로직으로 분리하기.
+  async updateStudyPlan(updateScheduleInput:IStudyPlanServiceUpdateSchedule){
+    // 1. api 호출 준비
+    const promptName = "계획조정";
+    try {
+    const {userId, updateStudyPlanInput} = updateScheduleInput;
+    const {availableStudyScheduleInput, examUpdateContentInput, studyPlanId, homeworkUpdateInput} = updateStudyPlanInput;
+    const availableTimes = availableStudyScheduleInput.map(
+      (d) => `${d.day}: ${d.timeRanges.map((t) => `${t.startTime} - ${t.endTime}`).join(', ')}`
+    ).join('\n');    
+   
+    const examContent =  examUpdateContentInput.map((exam) => `과목:${exam.subjectName}: 시험범위:${exam.examcontent}, 시험일정:${exam.examStartDay}`).join('\n');
+
+    const homework = homeworkUpdateInput.map((homework) => 
+      `과제이름:${homework.homeworkName}, 과제내용:${homework.homeworkContent}, 과제시작일:${homework.homeworkStartDay}, 과제마감일:${homework.homeworkEndDay}`
+    ).join('\n ');
+    const fullschedule = await this.findOne({ studyPlanId, userId });
+    const{schedules, studyPeriod} = fullschedule
+    const studyPlan = fullschedule
+    
+    const trimSchedules = schedules.map((s) => {
+      const startIso = new Date(s.startTime).toISOString();
+      const endIso = new Date(s.endTime).toISOString();
+      return `과목:${s.subject.subjectName}, 시간:${startIso}-${endIso}, 계획내용:${s.content}`;
+    }).join('\n');
+    
+    // 2. JSON 타입 리턴 구조 만들기
+    const promptData = {
+      availableTimes,
+      examContent,
+      homework,
+      studyPeriod,
+      trimSchedules
+    };
+    const findPrompt = await this.findChatGptPrompt({ promptName });
+    const compilePrompt = Handlebars.compile(findPrompt);
+    const prompt = compilePrompt(promptData);
+    console.log("프롬프트:",prompt);
+    // 3. 사용자 입력 데이터 + 선택된 계획 넘겨줘 조정 요청
+    const response = await openai.responses.parse({
+      model:"gpt-4o",
+      input:[
+        {role:"system", content: "당신은 사용자의 기존 학습 계획과 변동사항에 맞춰 학습 계획을 조정해주는 학습플레너입니다."},
+        {
+          role:"user",
+          content:prompt
+        },
+      ],
+      text: {
+        format: zodTextFormat(StudyPlanResponseSchema, "studyPlanText")
+      },
+    })
+
+    const {newSchedules}= response.output_parsed;
+    console.log('OpenAI 응답 원문:', newSchedules);
+    
+
+    // 5. 응답 받아 파싱해 저장
+    const saveStudyPlan = await this.studyPlanRepository.save(studyPlan);
+    const savedSchedules = await this.parseStudySchedule({newSchedules, studyPlan, userId})
+
+    saveStudyPlan.schedules = savedSchedules;
+    return saveStudyPlan
+    }catch(error){
+      console.error('학습 계획 조정 중 오류 발생:', error);
+      throw new Error('학습 계획 조정에 실패했습니다.');
     }
   }
 
   async findChatGptPrompt({ promptName }: IStudyPlanServiceFindChatGptPrompt): Promise<string> {
     const chatGptPrompt = await this.chatGptPrompt.findOne({ where: { promptName} });
     if ( !chatGptPrompt || !chatGptPrompt.promptText) throw new Error('없는 프롬프트입니다.');
-    console.log(chatGptPrompt.promptText);
     return chatGptPrompt.promptText;
   }
 
@@ -164,16 +224,21 @@ export class StudyPlansService {
       `.trim();
   }
 
+ 
   async findAll({user}:IStudyPlanServiceFindStudyPlans):Promise<StudyPlan[]>{
     return await this.studyPlanRepository.find(
       {where:{user:{id:user.id}, }})}
 
 
-  async findOne({studyPlanId, user}: IStudyPlanServiceFindStudyPlan):Promise<StudyPlan>{
-    return await this.studyPlanRepository.findOne(
+  async findOne({studyPlanId, userId}: IStudyPlanServiceFindStudyPlan):Promise<StudyPlan>{
+    const studyPlan = await this.studyPlanRepository.findOne(
       {where:
-        {user:{id:user.id},id:studyPlanId},
+        {user:{id:userId},id:studyPlanId},
         relations:['schedules', 'schedules.subject']
       })
+      if(!studyPlan){
+        throw new ConflictException("해당 학습 계획이 없습니다.")
+      }
+      return studyPlan
   }
 }

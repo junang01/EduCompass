@@ -1,6 +1,8 @@
 import { IContext } from 'src/commons/interfaces/context';
 import { CreateStudyPlanInput } from '../dto/create-study-plan.input';
 import { User } from 'src/apis/users/entities/user.entity';
+import { StudyPlan } from '../entities/study-plan.entity';
+import { UpdateStudyPlanInput } from '../dto/update-study-plan.input';
 
 export interface IStudyPlan {
   id?: number;
@@ -41,5 +43,26 @@ export interface IStudyPlanServiceFindStudyPlans{
 
 export interface IStudyPlanServiceFindStudyPlan{
   studyPlanId: number
-  user:User
+  userId:number;
+}
+
+export interface IStudyPlanServiceParseStudySchedule {
+  newSchedules: {
+    startTime?: string;
+    endTime?: string;
+    subject?: string;
+    content?: string;
+  }[],
+  userId:number,
+  studyPlan:StudyPlan,
+}
+
+export interface IStudyPlanServiceUpdateSchedule{
+  userId:number;
+  updateStudyPlanInput:UpdateStudyPlanInput,
+}
+
+export interface IStudyPlanServiceFindSchedules{
+  userId:number;
+  studyPlanId:number;
 }

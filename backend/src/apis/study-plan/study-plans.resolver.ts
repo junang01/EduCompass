@@ -8,6 +8,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { User } from '../users/entities/user.entity';
 import { FeatureUsageService } from '../featureUsage/featureUsage.service';
 import { IContext } from 'src/commons/interfaces/context';
+import { UpdateStudyPlanInput } from './dto/update-study-plan.input';
 
 @Resolver(() => StudyPlan)
 export class StudyPlansResolver {
@@ -41,13 +42,22 @@ export class StudyPlansResolver {
     @Args('studyPlanId') studyPlanId: number,
     @CurrentUser() user:User,
   ):Promise<StudyPlan>{
-    return await this.studyPlansService.findOne({studyPlanId, user})
+    const userId = user.id
+    return await this.studyPlansService.findOne({studyPlanId, userId})
   }
 
-  // @UseGuards(GqlAuthGuard)
-  // @Mutation()
-  // async adjustStudyPlan(
-  //   @Args()
-  // ){}
+  @UseGuards(GqlAuthGuard)
+  @Mutation(() => StudyPlan)
+  async updateStudyPlan(
+    @Args('updateStudyPlanInput') updateStudyPlanInput:UpdateStudyPlanInput,
+    @CurrentUser() user:User,
+  ):Promise<StudyPlan>{
+    const userId = user.id
+    const featureName = 'UpdateStudyPlan';
+    const findUsageReturn = await this.featureUsageService.canUsage({ userId, featureName });
+    const studyPlan = await this.studyPlansService.updateStudyPlan({userId, updateStudyPlanInput});
+    await this.featureUsageService.saveUsage({ userId, featureName }, findUsageReturn);
+    return studyPlan
+  }
 
 }

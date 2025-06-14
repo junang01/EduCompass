@@ -3,6 +3,8 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { StudySchedule } from "./entities/studySchedule.entity";
 import { Between, Repository } from "typeorm";
 import { IStudyScheduleServiceCreate, IStudyScheduleServiceFindByDateRange, IStudyScheduleServiceFindOne, IStudyScheduleServiceUpdate } from "./interfaces/studySchedule.interface";
+import { IStudyPlanServiceFindSchedules } from "../study-plan/interfaces/study-plan.interface";
+import { ConflictError } from "openai";
 
 @Injectable()
 export class StudyScheduleService{
@@ -65,6 +67,20 @@ export class StudyScheduleService{
     if (!schedule) throw new Error('스케줄을 찾을 수 없습니다.');
     return schedule
     }
+
+    // async findByUpdateSchedule({userId, studyPlanId}:IStudyPlanServiceFindSchedules):Promise<StudySchedule[]>{
+    //     const schedules = await this.studyScheduleRepository.find({
+    //         where: {
+    //           studyPlan: { id: studyPlanId, user: { id: userId } },
+    //         },
+    //         relations: ['subject'],
+    //       });
+    //     if(!schedules){
+    //         throw new Error("없는 학습 계획입니다.")
+    //     }
+    //     return schedules;
+    // }
+    
     
     async findByDateRange({startTime, endTime, user}:IStudyScheduleServiceFindByDateRange):Promise<StudySchedule[]>{
         const result = await this.studyScheduleRepository.find({
