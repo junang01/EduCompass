@@ -44,8 +44,10 @@ export class StudyPlansResolver {
     return await this.studyPlansService.findOne({studyPlanId, user})
   }
 
-  //   @UseGuards(GqlAuthGuard)
-  //   @Mutation(() => StudyPlan)
-  //   async adjustStudyPlan(@Args('adjustStudyPlanInput') adjustStudyPlanInput: IAdjustStudyPlanInput) {}
-  // }
+  // @UseGuards(GqlAuthGuard)
+  // @Mutation()
+  // async adjustStudyPlan(
+  //   @Args()
+  // ){}
+
 }

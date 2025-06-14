@@ -8,7 +8,6 @@ import { StudyStatusArgs } from './dto/study-status.args';
 import { GqlAuthGuard } from '../auth/guards/gql-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { User } from '../users/entities/user.entity';
-import { OverallStatsResponse } from './dto/overall-stats.response';
 
 
 @Resolver(() => StudyStatus)

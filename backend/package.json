@@ -50,7 +50,8 @@
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "typeorm": "^0.3.23",
-    "yarn": "^1.22.22"
+    "yarn": "^1.22.22",
+    "zod": "^3.25.64"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.0.0",

@@ -1,35 +1,14 @@
 import { InputType, Field, ID, Int } from '@nestjs/graphql';
-import {
-  IsNotEmpty,
-  IsString,
-  IsDate,
-  IsOptional,
-  IsNumber,
-} from 'class-validator';
+import { AvailableStudyScheduleInput } from './create-study-plan.input';
 
 @InputType()
 export class UpdateStudyPlanInput {
-  @Field(() => ID)
-  @IsNotEmpty()
-  id: number;
+  @Field(() =>Number)
+  studyPlanId:number;
 
-  @Field({ nullable: true })
-  @IsOptional()
-  @IsString()
-  title?: string;
+  @Field(() =>[AvailableStudyScheduleInput])
+  availableStudyScheduleInput: AvailableStudyScheduleInput;
 
-  @Field({ nullable: true })
-  @IsOptional()
-  @IsString()
-  description?: string;
-
-  @Field({ nullable: true })
-  @IsOptional()
-  @IsDate()
-  date?: Date;
-
-  @Field(() => Int, { nullable: true })
-  @IsOptional()
-  @IsNumber()
-  subject_seq?: number;
+  @Field(() => String)
+  subject
 }

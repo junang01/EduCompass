@@ -171,7 +171,8 @@ export class AuthService {
    */
   async sendAuthTokenEmail(email: string): Promise<string> {
     // 이메일 중복 확인
-    await this.checkEmailAvailability(email);
+    console.log(email);
+    await this.usersService.validateEmail(email);
 
     // 인증 토큰 생성 (비동기 함수로 변경됨)
     const { token, expiry } = await this.getToken();
@@ -191,16 +192,7 @@ export class AuthService {
     return '이메일 발송이 완료되었습니다.';
   }
 
-  /**
-   * 이메일 중복 확인
-   * @param email 확인할 이메일
-   */
-  private async checkEmailAvailability(email: string): Promise<void> {
-    const user = await this.usersService.findByEmail(email);
-    if (user) {
-      throw new ConflictException('이미 존재하는 이메일입니다');
-    }
-  }
+
 
   /**
    * 이메일 발송 처리

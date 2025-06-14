@@ -7,7 +7,8 @@ import { Subject } from '../subject/entities/subject.entity';
 import { SubjectService } from '../subject/subject.service';
 import OpenAI from 'openai';
 import * as dotenv from 'dotenv';
-
+import {z} from'zod';
+import { zodTextFormat } from "openai/helpers/zod";
 import { ChatGptPrompt } from './entities/chatGptPrompt.entity';  
 import Handlebars from 'handlebars';
 import { ICreateStudyPlanService, IStudyPlanServiceFindChatGptPrompt, IStudyPlanServiceFindStudyPlan, IStudyPlanServiceFindStudyPlans } from './interfaces/study-plan.interface';
@@ -58,34 +59,48 @@ export class StudyPlansService {
       const compilePrompt = Handlebars.compile(findPrompt);
       const prompt = compilePrompt(promptData);
       console.log(prompt);
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4',
-        messages: [
+
+      const studyPlanRespose = z.object({
+        startTime: z.string().datetime(),
+        endTime: z.string().datetime(),
+        subject: z.string().min(1),
+        content: z.string().min(1),
+      })
+      const StudyPlanResponseSchema = z.object({
+        schedules: z.array(studyPlanRespose),
+      });
+      const response = await openai.responses.parse({
+        model:"gpt-4o",
+        input:[
+          {role:"system", content: "당신은 사용자의 학습 정보를 바탕으로 하루 단위의 학습 계획을 JSON 형식으로 작성하는 AI입니다."},
           {
-            role: 'system',
-            content: '당신은 사용자의 학습 정보를 바탕으로 하루 단위의 학습 계획을 JSON 형식으로 작성하는 AI입니다. 다음 구조에서 절대 벗어나지 마라: 응답은 반드시 JSON 배열 형식으로만 작성하세요. 각 객체는 다음 필드를 포함해야 합니다: - startTime: ISO 8601 UTC 형식의 문자열 (예: "2025-05-30T05:00:00.000Z"), null 값 불가 - endTime: ISO 8601 UTC 형식의 문자열 (예: "2025-05-30T07:00:00.000Z"), null 값 불가 - subject: 문자열, null 값 불가 - content: 문자열, null 값 불가'
-          },
-          {
-            role: 'user',
-            content: prompt,
+            role:"user",
+            content:prompt
           },
         ],
-      });
+        text: {
+          format: zodTextFormat(StudyPlanResponseSchema, "studyPlanText")
+        },
+      })
+      // const response = await openai.chat.completions.create({
+      //   model: 'gpt-4o',
+        
+      //   messages: [
+      //     {
+      //       role: 'system',
+      //       content: '당신은 사용자의 학습 정보를 바탕으로 하루 단위의 학습 계획을 JSON 형식으로 작성하는 AI입니다. 다음 구조에서 절대 벗어나지 마라: 응답은 반드시 JSON 배열 형식으로만 작성하세요. 각 객체는 다음 필드를 포함해야 합니다: - startTime: ISO 8601 UTC 형식의 문자열 (예: "2025-05-30T05:00:00.000Z"), null 값 불가 - endTime: ISO 8601 UTC 형식의 문자열 (예: "2025-05-30T07:00:00.000Z"), null 값 불가 - subject: 문자열, null 값 불가 - content: 문자열, null 값 불가'
+      //     },
+      //     {
+      //       role: 'user',
+      //       content: prompt,
+      //     },
+      //   ],
+      // });
 
-      const studyPlanText = response.choices[0].message.content;
-      console.log('OpenAI 응답 원문:', studyPlanText);
-      let scheduleData;
-      try {
-        scheduleData = JSON.parse(studyPlanText);
-      } catch (error) {
-        console.error('JSON 파싱 오류:', error);
-        throw new Error('OpenAI 응답 형식에 오류가 있습니다.');
-      }
+      const schedules= response.output_parsed;
+      console.log('OpenAI 응답 원문:', schedules);
 
-      if (!scheduleData || scheduleData.length === 0) {
-        throw new Error('OpenAI 응답에 학습 계획 정보가 없습니다.');
-      }
-
+      const scheduleData = schedules.schedules;
       const studyPlan = this.studyPlanRepository.create({
         title,
         studyPeriod,

@@ -30,8 +30,13 @@ export class UsersService implements IUserService {
     }
     return user;
   }
-
-
+    
+  async validateEmail(email:string){
+    const user = await this.userRepository.findOne({ where: { email } });
+    if (user) {
+      throw new NotFoundException(`이미 가입된 이메일입니다.`);
+    }
+  }
   async findByEmail(email: string): Promise<User> {
     const user = await this.userRepository.findOne({ where: { email } });
     if (!user) {
