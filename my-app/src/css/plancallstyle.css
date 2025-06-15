@@ -1,0 +1,97 @@
+html, body {
+  height: 100%;
+}
+body {
+  padding-top: 70px;
+  background-color: #f1f1f1; /* 전체 배경을 연한 회색으로 설정 */
+}
+
+.container {
+  max-width: 800px;
+  margin: 50px auto;
+  padding: 40px;
+  background-color: #ffffff;
+  border-radius: 15px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.title {
+  font-size: 28px;
+  font-weight: bold;
+  margin-bottom: 30px;
+  text-align: center;
+  color: #001B75;
+}
+
+.load-btn {
+  display: block;
+  margin: 0 auto 30px auto;
+  padding: 12px 30px;
+  font-size: 16px;
+  border: none;
+  border-radius: 25px;
+  background-color: #001B75;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.load-btn:hover {
+  background-color: #0033aa;
+}
+
+.plan-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: center;
+  font-size: 16px;
+}
+
+.plan-table th, .plan-table td {
+  border: 1px solid #ddd;
+  padding: 12px;
+}
+
+.plan-table th {
+  background-color: #f0f2f5;
+  color: #333;
+}
+
+.plan-table tr:hover {
+  background-color: #f9f9f9;
+}
+
+.button-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 30px;
+  gap: 540px;
+}
+
+.cancel-btn, .confirm-btn {
+  padding: 12px 30px;
+  border: none;
+  border-radius: 25px;
+  font-size: 16px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.cancel-btn {
+  background-color: #ddd;
+  color: #333;
+}
+
+.cancel-btn:hover {
+  background-color: #ccc;
+}
+
+.confirm-btn {
+  background-color: #001B75;
+  color: white;
+}
+
+.confirm-btn:hover {
+  background-color: #0033aa;
+}
