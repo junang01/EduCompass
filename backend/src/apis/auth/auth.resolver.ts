@@ -199,21 +199,32 @@ export class AuthResolver {
   @UseGuards(JwtAuthGuard)
   @Mutation(() => Boolean)
   async logout(@Context() context) {
-    try {
-      // 요청 헤더에서 토큰 추출
-      const authHeader = context.req.headers.authorization;
-      if (authHeader && authHeader.startsWith('Bearer ')) {
-        const token = authHeader.substring(7);
-        // 토큰을 블랙리스트에 추가
-        await this.authService.blacklistRefreshToken(token);
-        this.logger.debug('토큰이 블랙리스트에 추가되었습니다');
-      }
-      return true;
-    } catch (error) {
-      this.logger.error('로그아웃 처리 중 오류:', error);
-      return false;
+  try {
+    // 요청 헤더에서 액세스 토큰 추출
+    const authHeader = context.req.headers.authorization;
+    let accessToken: string | undefined;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      accessToken = authHeader.substring(7);
     }
+
+    // 요청 헤더 또는 쿠키에서 리프레시 토큰 추출 (예시: 쿠키 사용 시)
+    let refreshToken: string | undefined;
+    if (context.req.cookies && context.req.cookies.refreshToken) {
+      refreshToken = context.req.cookies.refreshToken;
+    } else if (context.req.headers['x-refresh-token']) {
+      refreshToken = context.req.headers['x-refresh-token'];
+    }
+
+    // AuthService의 logout 메서드 호출 (둘 다 전달)
+    await this.authService.logout(accessToken, refreshToken);
+
+    this.logger.debug('액세스/리프레시 토큰이 블랙리스트에 추가되었습니다');
+    return true;
+  } catch (error) {
+    this.logger.error('로그아웃 처리 중 오류:', error);
+    return false;
   }
+}
 
   /**
    * 이메일 인증 토큰 발송
