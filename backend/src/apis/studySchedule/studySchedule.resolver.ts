@@ -1,4 +1,4 @@
-import { Args, Mutation, Resolver } from "@nestjs/graphql";
+import { Args, Int, Mutation, Resolver } from "@nestjs/graphql";
 import { StudySchedule } from "./entities/studySchedule.entity";
 import { StudyScheduleService } from "./studyschedule.service";
 import { GqlAuthGuard } from "../auth/guards/gql-auth.guard";
@@ -34,7 +34,7 @@ export class StudyScheduleResolver{
     @UseGuards(GqlAuthGuard)
     @Mutation(() => StudySchedule)
     async updateCompleted(
-        @Args('id') id:number,
+        @Args('id',{ type: () => Int }) id:number,
         @CurrentUser() user:User,
     ):Promise<StudySchedule>{
         return await this.studyScheduleService.completeUpdate({id,user})
@@ -53,7 +53,7 @@ export class StudyScheduleResolver{
     @UseGuards(GqlAuthGuard)
     @Mutation(() => Boolean)
     async deleteSchedule(
-        @Args('id') id:number,
+        @Args('id', { type: () => Int }) id:number,
         @CurrentUser() user:User
     ):Promise<boolean>{
         return await this.studyScheduleService.delete({id,user})

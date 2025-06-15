@@ -9,6 +9,7 @@ import { StudyScheduleService } from "./studyschedule.service";
 
     providers:[StudyScheduleResolver, StudyScheduleService],
 
-    exports:[]
+    exports:[ TypeOrmModule.forFeature([StudySchedule]), // <-- 이 부분을 추가해야 합니다!
+    StudyScheduleService ]
 })
 export class StudyScheduleModule{}

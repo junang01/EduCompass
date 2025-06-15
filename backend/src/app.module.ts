@@ -17,6 +17,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { User } from './apis/users/entities/user.entity';
 import { AdminUserSeed } from './apis/auth/seeds/admin-user.seed';
 import { StudyScheduleModule } from './apis/studySchedule/studySchedule.module';
+import { StudySchedule } from './apis/studySchedule/entities/studySchedule.entity';
 
 @Module({
   imports: [
@@ -28,7 +29,9 @@ import { StudyScheduleModule } from './apis/studySchedule/studySchedule.module';
       username: process.env.DATABASE_USERNAME,
       password: process.env.DATABASE_PASSWORD,
       database: process.env.DATABASE_DATABASE,
-      entities: [__dirname + '/apis/**/*.entity.*'], //entity부분을 연결하기 위해 일일이 하나씩 다 입력하는게 아니라 상위 파일주소를 입력해 순회하면서 entity로 시작하는 파일을 가져오게 한다.
+      entities: [
+        StudySchedule,
+        __dirname + '/apis/**/*.entity.*'], //entity부분을 연결하기 위해 일일이 하나씩 다 입력하는게 아니라 상위 파일주소를 입력해 순회하면서 entity로 시작하는 파일을 가져오게 한다.
       synchronize: true,
       logging: true,
     }),

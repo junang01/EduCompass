@@ -155,7 +155,7 @@ export class StudyPlansService {
       const endIso = new Date(s.endTime).toISOString();
       return `과목:${s.subject.subjectName}, 시간:${startIso}-${endIso}, 계획내용:${s.content}`;
     }).join('\n');
-    
+
     // 2. JSON 타입 리턴 구조 만들기
     const promptData = {
       availableTimes,
@@ -226,8 +226,13 @@ export class StudyPlansService {
 
  
   async findAll({user}:IStudyPlanServiceFindStudyPlans):Promise<StudyPlan[]>{
-    return await this.studyPlanRepository.find(
-      {where:{user:{id:user.id}, }})}
+    const studyPlans =  await this.studyPlanRepository.find(
+      {where:{user:{id:user.id}, }})
+      if(!studyPlans){
+        throw new ConflictException("생성한 계획이 없습니다.")
+      }
+      return studyPlans
+    }
 
 
   async findOne({studyPlanId, userId}: IStudyPlanServiceFindStudyPlan):Promise<StudyPlan>{

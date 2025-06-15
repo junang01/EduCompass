@@ -39,7 +39,7 @@ export class StudyPlansResolver {
   @UseGuards(GqlAuthGuard)
   @Query(() => StudyPlan)
   async findStudyPlan(
-    @Args('studyPlanId') studyPlanId: number,
+    @Args('studyPlanId',{ type: () => Int }) studyPlanId: number,
     @CurrentUser() user:User,
   ):Promise<StudyPlan>{
     const userId = user.id
