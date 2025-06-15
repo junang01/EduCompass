@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { Calendar, momentLocalizer, View } from "react-big-calendar";
+import { Calendar, momentLocalizer, Views } from "react-big-calendar";
 import moment from "moment";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import "../css/calendarPage.css";
-import { Link } from "react-router-dom";
 import axios from "axios";
 
 const localizer = momentLocalizer(moment);
@@ -17,8 +16,7 @@ interface CalendarEvent {
 
 const CalendarPage = () => {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [username, setUsername] = useState<string>("");
-  const [view, setView] = useState<View>("week");
+  const [view, setView] = useState<keyof typeof Views>("week");
   const [date, setDate] = useState(new Date());
 
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -52,12 +50,6 @@ const CalendarPage = () => {
     };
 
     fetchEvents();
-
-    const userData = localStorage.getItem("user");
-    if (userData) {
-      const user = JSON.parse(userData);
-      setUsername(user.name);
-    }
   }, []);
 
   const handleSave = async () => {
@@ -99,7 +91,7 @@ const CalendarPage = () => {
     if (!selectedEvent || !editDate || !editStartTime || !editEndTime) return;
 
     const dateString = moment(editDate).format("YYYY-MM-DD");
-    const updated = {
+    const updated: CalendarEvent = {
       id: selectedEvent.id,
       title: editTitle,
       start: new Date(`${dateString}T${editStartTime}`),
@@ -133,22 +125,21 @@ const CalendarPage = () => {
 
   return (
     <>
-      {/* ...헤더, 사이드바 생략... */}
-
       <div className="calendar_center">
         <Calendar
           localizer={localizer}
           events={events}
           startAccessor="start"
           endAccessor="end"
-          views={["month", "week", "day"]}
+          views={Object.values(Views)}
           defaultView="month"
           view={view}
-          onView={(newView) => setView(newView as View)}
+          onView={(newView: keyof typeof Views) => setView(newView)}
           date={date}
-          onNavigate={(newDate) => setDate(newDate)}
+          onNavigate={(newDate: Date) => setDate(newDate)}
           selectable
-          onSelectSlot={(slotInfo) => {
+          // Directly type the parameter with a common object structure if SlotInfo still errors
+          onSelectSlot={(slotInfo: { start: Date; end: Date; slots: Date[] }) => {
             setSelectedDate(slotInfo.start);
             setShowModal(true);
           }}
@@ -156,14 +147,26 @@ const CalendarPage = () => {
           style={{ height: "100%" }}
         />
 
-        {/* 추가 모달 */}
         {showModal && selectedDate && (
           <div className="calendar-modal-overlay">
             <div className="calendar-modal">
-              <input placeholder="계획 이름" value={title} onChange={(e) => setTitle(e.target.value)} />
+              <input
+                placeholder="계획 이름"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
               <div className="time-range">
-                <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} /> ~
-                <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
+                <input
+                  type="time"
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                />{" "}
+                ~
+                <input
+                  type="time"
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                />
               </div>
               <button onClick={() => setShowModal(false)}>취소</button>
               <button onClick={handleSave}>저장</button>
@@ -171,7 +174,6 @@ const CalendarPage = () => {
           </div>
         )}
 
-        {/* 수정 모달 */}
         {showDetailModal && selectedEvent && (
           <div className="calendar-detail-panel">
             <input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
@@ -181,8 +183,17 @@ const CalendarPage = () => {
               onChange={(e) => setEditDate(new Date(e.target.value))}
             />
             <div className="detail-time-inputs">
-              <input type="time" value={editStartTime} onChange={(e) => setEditStartTime(e.target.value)} /> ~
-              <input type="time" value={editEndTime} onChange={(e) => setEditEndTime(e.target.value)} />
+              <input
+                type="time"
+                value={editStartTime}
+                onChange={(e) => setEditStartTime(e.target.value)}
+              />{" "}
+              ~
+              <input
+                type="time"
+                value={editEndTime}
+                onChange={(e) => setEditEndTime(e.target.value)}
+              />
             </div>
             <button onClick={handleDelete}>삭제</button>
             <button onClick={handleEditSave}>수정</button>
