@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
-import '../css/plansurveystyle.css';
+import '../css/booksurveystyle.css';
 import { Link, useNavigate } from "react-router-dom";
 
-const PlanSurvey: React.FC = () => {
+const BookSurvey: React.FC = () => {
   const [username, setUsername] = useState<string>("");
   
     useEffect(() => {
@@ -163,4 +163,4 @@ const PlanSurvey: React.FC = () => {
   );
 };
 
-export default PlanSurvey;
+export default BookSurvey;
