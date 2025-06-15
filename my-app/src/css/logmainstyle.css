@@ -1,0 +1,289 @@
+@charset "utf-8";
+
+* {
+  margin: 0; 
+  padding: 0; 
+  border: 0;
+}
+ul {
+  list-style: none;
+}
+a {
+  text-decoration: none;
+}
+
+html, body {
+  height: 100%;
+}
+body {
+  box-sizing: border-box;
+}
+
+nav {
+  width: 100%; 
+  height: 70px; 
+  display: flex; 
+  align-items: center; 
+  justify-content: space-between; 
+  box-shadow: 0 0 5px 5px gray; 
+  position: fixed; 
+  top: 0; 
+  background-color: white; 
+  z-index: 1000;
+}
+nav h2 {
+  text-align: center; 
+  line-height: 20px; 
+  margin-left: 20px; 
+  white-space: nowrap; 
+  color: #00107b;
+}
+nav h2 a:visited {
+  color: inherit;
+}
+nav ul {
+  display: flex; 
+  justify-content: center; 
+  padding: 0; 
+  gap: 80px; 
+  box-sizing: border-box; 
+  white-space: nowrap;
+}
+nav ul li {
+  float: left;
+}
+nav ul li a {
+  color: black; 
+  font-size: 16px;
+}
+
+nav ul li a:hover {
+  color: #00107b; 
+  font-weight: bold;
+}
+
+i {
+  color: white;
+}
+
+.info {
+  display: flex; 
+  align-items: center; 
+  justify-content: space-between; 
+  gap: 10px; 
+  margin-right: 50px; 
+  white-space: nowrap;
+}
+.info a {
+  color: black; 
+  font-size: 16px;
+}
+.info div {
+  text-align: center;
+}
+.infoo {
+  border-right: solid 2px; 
+  padding-right: 10px;
+}
+
+.main_container {
+  width: 100%; 
+  height: 100vh; 
+  background-color: #eeeeee;
+}
+.main_container_wrap {
+  width: 85%; 
+  height: 100%; 
+  margin: 0 auto; 
+  box-sizing: border-box; 
+  display: flex;
+  align-content: center;
+}
+.main_container_center {
+  height: auto;
+  width: 100%; 
+  margin-top: 70px;
+  gap: 30px;
+}
+
+.main_log_banner {
+  float: left; 
+  width: 48%; 
+  height: 570px; 
+  background-color: #00107b; 
+  border-radius: 20px; 
+  box-shadow: 3px 3px 10px 3px gray; 
+  padding-top: 70px; 
+  box-sizing: border-box;
+}
+.main_log_banner img {
+  width: 200px; 
+  height: 180px; 
+  margin-left: 50px; 
+  margin-top: 25px;
+}
+.main_log_banner h1, p, h4{
+  color: white; 
+  text-align: center; 
+}
+.main_log_banner h1 {
+  float: right; 
+  margin-top: 75px; 
+  margin-right: 110px;
+}
+.main_log_banner p {
+  margin-top: 10px; 
+  line-height: 25px;
+}
+
+.grid_log_maincontainer {
+  float: right; 
+  width: 48%; 
+  height: 570px; 
+  color: white; 
+  display: grid; 
+  grid-template-columns: 50% 50%; 
+  grid-template-rows: 130px 250px 130px; 
+  align-content: space-between;
+}
+
+.grid_log_editplan {
+  width: 95%; 
+  height: 100%; 
+  background-color: #636363; 
+  border-radius: 10px; 
+  display: flex; 
+  flex-direction: column; 
+  align-items: center; 
+  justify-content: center; 
+}
+.grid_log_editplan .icon {
+  margin-top: 10px;
+}
+.grid_log_editplan:hover {
+  transform: scale(1.02);
+}
+
+.grid_log_progress {
+  width: 95%; 
+  height: 100%; 
+  background-color: #636363; 
+  border-radius: 10px; 
+  display: flex; 
+  flex-direction: column; 
+  align-items: center; 
+  justify-content: center; 
+}
+.grid_log_progress .icon {
+  margin-top: 10px;
+}
+.grid_log_progress:hover {
+  transform: scale(1.02);
+}
+
+.grid_log_makeplan {
+  background-color: #2F397A; 
+  border-radius: 10px;
+  width: 95%; 
+  height: 100%; 
+  display: flex; 
+  flex-direction: column; 
+  align-items: center; 
+  justify-content: center; 
+  position: relative;
+}
+.grid_log_makeplan h4, p {
+  margin-bottom: 15px;
+}
+.grid_log_makeplan p {
+  font-size: 14px; 
+  line-height: 22px;
+}
+.makeplan_overlay {
+  position: absolute; 
+  width: 100%; 
+  height: 100%; 
+  background-color: rgba(0, 0, 0, 0.437); 
+  color: white; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  border-radius: 10px; 
+  opacity: 0;
+}
+.grid_log_makeplan:hover .makeplan_overlay {
+  opacity: 1;
+}
+
+.grid_log_calendar {
+  background-color: #565D89; 
+  border-radius: 10px;
+  width: 95%; height: 100%; 
+  display: flex; 
+  flex-direction: column; 
+  align-items: center; 
+  justify-content: center; 
+  position: relative;
+}
+.grid_log_calendar h4, p {
+  margin-bottom: 22px;
+}
+.grid_log_calendar p {
+  font-size: 14px; 
+  line-height: 22px;
+}
+.calendar_overlay {
+  position: absolute; 
+  width: 100%; 
+  height: 100%; 
+  background-color: rgba(0, 0, 0, 0.437); 
+  color: white; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  border-radius: 10px; 
+  opacity: 0;
+}
+.grid_log_calendar:hover .calendar_overlay {
+  opacity: 1;
+}
+
+.grid_log_textbook {
+  width: 95%; 
+  height: 100%; 
+  background-color: #636363; 
+  border-radius: 10px; 
+  display: flex; 
+  flex-direction: column; 
+  align-items: center; 
+  justify-content: center;
+}
+.grid_log_textbook .icon {
+  margin-top: 10px;
+}
+.grid_log_textbook:hover {
+  transform: scale(1.02);
+}
+
+.grid_log_mypage {
+  width: 95%; 
+  height: 100%; 
+  background-color: #636363; 
+  border-radius: 10px; 
+  display: flex; 
+  flex-direction: column; 
+  align-items: center; 
+  justify-content: center; 
+}
+.grid_log_mypage .icon {
+  margin-top: 10px;
+}
+.grid_log_mypage:hover {
+  transform: scale(1.02);
+}
+
+.logout-btn {
+  background-color: white;
+  font-size: 17px;
+  cursor: pointer;
+}
