@@ -113,9 +113,7 @@ const StatusPage: React.FC = () => {
           <div className="sidebar-title">학습 현황</div>
           <ul className="sidebar-menu">
             <li className="active"><a href="#">학습 현황</a></li>
-            {subjects.map((subject) => (
-              <li key={subject}><a href="#" style={{ fontSize: '12px' }}>{subject}</a></li>
-            ))}
+            <li><a href="#">계획별 학습 현황</a></li>
             <hr />
           </ul>
         </div>
