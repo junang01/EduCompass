@@ -41,6 +41,10 @@ export class Book {
 
   @Field({ nullable: true })
   @Column({ nullable: true })
+  url: string;
+  
+  @Field({ nullable: true })
+  @Column({ nullable: true })
   difficultyLevel: string;
 
   @Field()
