@@ -2,9 +2,11 @@ import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { BookRecommendationService } from './book-rec.service';
 import { BookRecommendation } from './entities/book-rec.entity';
+import { BookSurvey } from './entities/book-survey.entity';
 import { CreateBookRecommendationInput } from './dto/create-book-rec.input';
 import { UpdateBookRecommendationInput } from './dto/update-book-rec.input';
 import { BookRecommendationArgs } from './dto/book-rec.args';
+import { CreateBookSurveyDto } from './dto/create-book-survey.dto';
 import { GqlAuthGuard } from '../auth/guards/gql-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { User } from '../users/entities/user.entity';
@@ -16,7 +18,7 @@ export class BookRecommendationResolver {
   @UseGuards(GqlAuthGuard)
   @Query(() => [BookRecommendation])
   async bookRecommendations(
-    @CurrentUser() user: User, //
+    @CurrentUser() user: User,
     @Args() args: BookRecommendationArgs,
   ): Promise<BookRecommendation[]> {
     return this.bookRecommendationService.findAll(user.id, args);
@@ -24,7 +26,10 @@ export class BookRecommendationResolver {
 
   @UseGuards(GqlAuthGuard)
   @Query(() => BookRecommendation)
-  async bookRecommendation(@Args('id', { type: () => Int }) id: number, @CurrentUser() user: User): Promise<BookRecommendation> {
+  async bookRecommendation(
+    @Args('id', { type: () => Int }) id: number,
+    @CurrentUser() user: User,
+  ): Promise<BookRecommendation> {
     return this.bookRecommendationService.findOne(id, user.id);
   }
 
@@ -46,24 +51,51 @@ export class BookRecommendationResolver {
     @Args('updateBookRecommendationInput') updateBookRecommendationInput: UpdateBookRecommendationInput,
     @CurrentUser() user: User,
   ): Promise<BookRecommendation> {
-    return this.bookRecommendationService.update(updateBookRecommendationInput.id, updateBookRecommendationInput, user.id);
+    return this.bookRecommendationService.update(
+      updateBookRecommendationInput.id,
+      updateBookRecommendationInput,
+      user.id,
+    );
   }
 
   @UseGuards(GqlAuthGuard)
   @Mutation(() => Boolean)
-  async deleteBookRecommendation(@Args('id', { type: () => Int }) id: number, @CurrentUser() user: User): Promise<boolean> {
+  async deleteBookRecommendation(
+    @Args('id', { type: () => Int }) id: number,
+    @CurrentUser() user: User,
+  ): Promise<boolean> {
     return this.bookRecommendationService.delete(id, user.id);
   }
 
   @UseGuards(GqlAuthGuard)
   @Mutation(() => BookRecommendation)
-  async toggleFavorite(@Args('id', { type: () => Int }) id: number, @CurrentUser() user: User): Promise<BookRecommendation> {
+  async toggleFavorite(
+    @Args('id', { type: () => Int }) id: number,
+    @CurrentUser() user: User,
+  ): Promise<BookRecommendation> {
     return this.bookRecommendationService.toggleFavorite(id, user.id);
   }
 
   @UseGuards(GqlAuthGuard)
   @Query(() => [BookRecommendation])
-  async getBookRecommendations(@Args('subject') subject: string, @CurrentUser() user: User): Promise<any[]> {
+  async getBookRecommendations(
+    @Args('subject') subject: string,
+    @CurrentUser() user: User,
+  ): Promise<any[]> {
     return this.bookRecommendationService.getRecommendations(user.id, subject);
+  }
+
+  // 설문 저장 뮤테이션 추가
+  @UseGuards(GqlAuthGuard)
+  @Mutation(() => BookSurvey)
+  async createBookSurvey(
+    @Args('createBookSurveyDto') createBookSurveyDto: CreateBookSurveyDto,
+    @CurrentUser() user: User,
+  ): Promise<BookSurvey> {
+    // userId를 현재 로그인 유저로 덮어씌움
+    return this.bookRecommendationService.saveSurvey({
+      ...createBookSurveyDto,
+      userId: user.id,
+    });
   }
 }
