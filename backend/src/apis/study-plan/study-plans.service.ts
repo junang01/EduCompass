@@ -55,10 +55,14 @@ export class StudyPlansService {
       const reviewDay = reviewDays.join(',');
       const missedPlanDay = missedPlanDays.join(',');
       const subjectsPrompt = subjects.map(this.formatSubject).join('\n\n');
-
+      const studyPeriodParts = studyPeriod.split(' ~ ');
+      const studyPeriod_startDate = studyPeriodParts[0]; // 예: "2025-06-17"
+      const studyPeriod_startDay = this.getDayName(studyPeriod_startDate);
       console.log('title:', title); //title확인 왜이러니 너는 좀
       const promptData = {
         studyPeriod,
+        studyPeriod_startDate,
+        studyPeriod_startDay,
         availableTimes,
         learningStyle,
         reviewDay,
@@ -245,5 +249,10 @@ export class StudyPlansService {
         throw new ConflictException("해당 학습 계획이 없습니다.")
       }
       return studyPlan
+  }
+  getDayName(dateString: string):String{
+    const date = new Date(dateString);
+    const dayNames = ['일요일','월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
+    return dayNames[date.getDay()];
   }
 }
