@@ -1,25 +1,30 @@
 import React, { useEffect, useState } from "react";
 import '../css/booksurvey2style.css';
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { request, gql } from 'graphql-request';  // graphql-request 설치 필요
 
 const BookSurvey2: React.FC = () => {
   const [username, setUsername] = useState<string>("");
-  
-    useEffect(() => {
-      const userData = localStorage.getItem("user");
-      if (userData) {
-        const user = JSON.parse(userData);
-        setUsername(user.name);
-      }
-    }, []);
-
+  const location = useLocation();
   const navigate = useNavigate();
+
+  // SurveyPage1에서 넘겨받은 값
+  const { selectedSubject, selectedDetail } = location.state || {};
+
   const [selectedPurpose, setSelectedPurpose] = useState('');
   const [selectedLevel, setSelectedLevel] = useState('');
   const [selectedStyle, setSelectedStyle] = useState('');
   const [selectedDifficulty, setSelectedDifficulty] = useState('');
   const [studyTime, setStudyTime] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const userData = localStorage.getItem("user");
+    if (userData) {
+      const user = JSON.parse(userData);
+      setUsername(user.name);
+    }
+  }, []);
 
   const handleSubmit = async () => {
     if (!selectedPurpose || !selectedLevel || !selectedStyle || !selectedDifficulty || !studyTime) {
@@ -30,26 +35,36 @@ const BookSurvey2: React.FC = () => {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/recommendBook', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          subject: '수학', // 실제 구현 시 SurveyPage에서 넘겨받은 subject 사용
-          purpose: selectedPurpose,
-          level: selectedLevel,
-          style: selectedStyle,
-          difficulty: selectedDifficulty,
-          time: studyTime,
-        }),
-      });
+      const endpoint = 'http://localhost:3000/graphql';  // ← 실제 서버 주소로 변경!
+      const mutation = gql`
+        mutation CreateSurvey($createBookSurveyDto: CreateBookSurveyDto!) {
+          createBookSurvey(createBookSurveyDto: $createBookSurveyDto) {
+            id
+            answers
+            createdAt
+          }
+        }
+      `;
 
-      const result = await response.json();
+      const variables = {
+        createBookSurveyDto: {
+          answers: {
+            subject: selectedSubject,
+            detail: selectedDetail,
+            purpose: selectedPurpose,
+            level: selectedLevel,
+            style: selectedStyle,
+            difficulty: selectedDifficulty,
+            time: studyTime
+          }
+        }
+      };
 
-      // 결과 페이지로 이동하면서 추천 결과 전달
-      navigate('/surveyResult', { state: { book: result } });
+      await request(endpoint, mutation, variables);
+      navigate('/surveyResult');
     } catch (error) {
-      console.error('추천 요청 실패:', error);
-      alert("추천 요청 중 오류가 발생했습니다.");
+      console.error('설문 저장 실패:', error);
+      alert("설문 저장 중 오류가 발생했습니다.");
     } finally {
       setLoading(false);
     }
@@ -151,17 +166,13 @@ const BookSurvey2: React.FC = () => {
             </button>
             <button
   type="button"
-  onClick={() =>
-    navigate('/surveyResult', {
-      state: {
-        subject: '수학', // 실제론 SurveyPage.tsx에서 넘겨받아야 함
-        purpose: selectedPurpose,
-        level: selectedLevel,
-        style: selectedStyle,
-        difficulty: selectedDifficulty,
-        time: studyTime,
-      }
-    })
+  onClick={handleSubmit}
+  disabled={
+    !selectedPurpose || 
+    !selectedLevel || 
+    !selectedStyle || 
+    !selectedDifficulty || 
+    !studyTime
   }
 >
   제출
