@@ -1,9 +1,14 @@
 import React, { useEffect, useState } from "react";
 import '../css/booksurveystyle.css';
 import { Link, useNavigate } from "react-router-dom";
+import { request, gql } from 'graphql-request';
 
 const BookSurvey: React.FC = () => {
   const [username, setUsername] = useState<string>("");
+  const navigate = useNavigate();
+  const [selectedSubject, setSelectedSubject] = useState('');
+  const [selectedDetail, setSelectedDetail] = useState('');
+  const isFormValid = selectedSubject && selectedDetail;
   
     useEffect(() => {
       const userData = localStorage.getItem("user");
@@ -13,13 +18,39 @@ const BookSurvey: React.FC = () => {
       }
     }, []);
 
-  const navigate = useNavigate();
-  const [selectedSubject, setSelectedSubject] = useState('');
-  const [selectedDetail, setSelectedDetail] = useState('');
-
-
   const isActive = (subject: string) => {
     return selectedSubject === subject || selectedSubject === '';
+  };
+
+  // 설문 제출 함수
+  const handleSubmitSurvey = async () => {
+    const endpoint = 'http://localhost:3000/graphql'; 
+    const mutation = gql`
+      mutation CreateSurvey($createBookSurveyDto: CreateBookSurveyDto!) {
+        createBookSurvey(createBookSurveyDto: $createBookSurveyDto) {
+          id
+          answers
+          createdAt
+        }
+      }
+    `;
+
+    const variables = {
+      createBookSurveyDto: {
+        answers: {
+          subject: selectedSubject,
+          detail: selectedDetail
+        }
+      }
+    };
+
+    try {
+      await request(endpoint, mutation, variables);
+      navigate('/survey2');
+    } catch (error) {
+      console.error("설문 저장 실패:", error);
+      alert("설문 저장 중 오류가 발생했습니다.");
+    }
   };
 
   return (
@@ -152,11 +183,15 @@ const BookSurvey: React.FC = () => {
 
           {/* 하단 이동 버튼 */}
           <div className="form-footer">
-            <span>1/2</span>
-            <button type="button" onClick={() => navigate('/survey2')}>
-              다음
-            </button>
-          </div>
+  <span>1/2</span>
+  <button 
+    type="button" 
+    onClick={() => navigate('/survey2', { state: { selectedSubject, selectedDetail } })}
+    disabled={!(selectedSubject && selectedDetail)} // 여기 유효성 검증 추가
+  >
+    다음
+  </button>
+</div>
         </form>
       </main>
     </>
