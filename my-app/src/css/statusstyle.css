@@ -1,0 +1,275 @@
+@charset "utf-8";
+
+* {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  box-sizing: border-box;
+}
+ul {
+  list-style: none;
+}
+a {
+  text-decoration: none;
+}
+
+html, body {
+  height: 100%;
+}
+body {
+  background-color: #f4f4f4; /* 전체 배경을 연한 회색으로 설정 */
+}
+
+nav {
+  width: 100%;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 0 5px 5px gray;
+  position: fixed;
+  top: 0;
+  background-color: white;
+  z-index: 1000;
+}
+nav h2 {
+  text-align: center;
+  line-height: 20px;
+  margin-left: 20px;
+  white-space: nowrap;
+  color: #00107b;
+}
+nav ul {
+  display: flex;
+  justify-content: center;
+  gap: 60px;
+}
+nav ul li a {
+  color: black;
+  font-size: 16px;
+}
+nav ul li a:hover {
+  color: #00107b;
+  font-weight: bold;
+}
+.log {
+  display: flex;
+  gap: 10px;
+  margin-right: 50px;
+}
+.login {
+  border-right: solid 2px black;
+  padding-right: 10px;
+}
+
+nav ul li a.active {
+  color: #00107b;
+  font-weight: bold;
+}
+
+.survey-main {
+  padding: 70px 0;
+}
+
+/* 사이드바 고정 - 스크롤 따라오지 않음 */
+.sidebar {
+  position: absolute;
+  top: 140px;
+  left: 60px;
+  width: 200px;
+  height: 550px;
+  padding: 30px 20px;
+  border: 2px solid #001B75;
+  border-radius: 15px;
+  background-color: white;
+  font-family: sans-serif;
+  z-index: 10;
+  transform: translateX(10px);
+}
+
+.sidebar-title {
+  font-weight: bold;
+  font-size: 17px;
+  color: #001B75;
+  text-align: center;
+  margin-bottom: 14px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #001B75;
+}
+
+.sidebar-menu {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sidebar-menu li {
+  margin: 8px 0;
+  font-size: 12.5px;
+}
+
+.sidebar-menu li a {
+  color: #000;
+  text-decoration: none;
+  display: inline-block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.sidebar-menu li.active a {
+  color: #001B75;
+  font-weight: bold;
+  border-left: 2px solid #001B75;
+  padding-left: 6px;
+  font-size: 14px;
+}
+
+.sidebar-menu li a:hover {
+  color: #001B75;
+  font-weight: bold;
+}
+
+.sidebar-menu hr {
+  border: none;
+  border-top: 1px solid #ccc;
+  margin: 10px 0;
+}
+
+
+/* 기간설정 바 */
+.period-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #ccc;
+  border-radius: 10px;
+  padding: 12px 20px;
+  margin: 40px auto; /* 중앙 정렬 + 여백 */
+  gap: 10px;
+  background-color: white;
+  font-family: sans-serif;
+}
+
+.period-bar .label {
+  font-weight: bold;
+  font-size: 14px;
+  margin-right: 8px;
+  white-space: nowrap;
+  width: 100px;
+  display: flex;
+  justify-content: center;
+  border-radius: 2px;
+}
+
+.period-bar .date-input {
+  padding: 6px 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.period-bar .separator {
+  margin: 0 8px;
+  font-weight: bold;
+}
+
+.period-bar .query-btn {
+  background-color: #00107b;
+  color: white;
+  border: none;
+  padding: 7px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: bold;
+}
+
+.period-wrapper {
+  width: 900px; /* ✅ 원하는 만큼 늘려줘 */
+  margin: 40px auto; /* 가운데 정렬 유지 */
+  transform: translateX(60px);
+}
+
+/* 과목 카드 전체 컨테이너 */
+.subject-cards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* 2열로 나열 */
+  gap: 30px;
+  margin-top: 40px;
+}
+
+/* 개별 과목 카드 */
+.subject-card {
+  background-color: white;
+  border: 2px solid #ccc;
+  border-radius: 15px;
+  padding: 20px;
+  min-height: 220px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  font-family: sans-serif;
+}
+
+/* 카드 제목 (예: 국어, 수학) */
+.subject-card h4 {
+  font-size: 18px;
+  margin-bottom: 20px;
+  color: #00107b;
+  text-align: center;
+  padding-bottom: 8px;        /* 여백 추가 */
+  border-bottom: 2px solid #eee;  /* 🔥 하단 파란 선 추가 */
+}
+
+/* 이행률 progress-bar 묶음 */
+.progress-bar {
+  margin-bottom: 15px;
+}
+
+/* progress-bar 제목 (계획 이행률 등) */
+.progress-bar span {
+  font-size: 14px;
+  font-weight: bold;
+  display: block;
+  margin-bottom: 5px;
+}
+
+/* 그래프 바 틀 */
+.bar-line-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 5px;
+}
+
+.bar-background {
+  width: 90%;
+  height: 10px;
+  background-color: #eee;
+  border-radius: 5px;
+  position: relative;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  background-color: #001B75;
+  transition: width 1s ease;
+  border-radius: 5px;
+}
+
+.percent-text {
+  font-size: 13px;
+  font-weight: bold;
+  color: #001B75;
+  min-width: 30px;
+  text-align: right;
+}
+
+.no-plan-message {
+  text-align: center;
+  margin-top: 230px;
+  font-size: 24px;
+  color: #555;
+  font-weight: bold;
+}

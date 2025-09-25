@@ -1,0 +1,6 @@
+{
+  "compilerOptions": {
+    "tsConfigPath": "./backend/tsconfig.json"
+  },
+  "sourceRoot": "backend/src"
+}
