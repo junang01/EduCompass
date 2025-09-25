@@ -12,6 +12,9 @@ import MyPage from './pages/MyPage';
 import SurveyMainPage from './pages/planSurvey/SurveyMainPage';
 import StatusPage from './pages/Status';
 import CalendarPage from './pages/CalendarPage';
+import ChangePlanStartPage from './pages/changePlan/ChangePlanStart';
+import PlanCallPage from './pages/changePlan/ChangePlanSurvey1';
+import ChangePlanSurvey2Page from './pages/changePlan/ChangePlanSurvey2';
 
 function App() {
   return (
@@ -28,6 +31,9 @@ function App() {
           <Route path="/planPage" element={<SurveyMainPage />}></Route>
           <Route path='/status' element={<StatusPage />}></Route>
           <Route path='/calendar' element={<CalendarPage />}></Route>
+          <Route path='/change' element={<ChangePlanStartPage />}></Route>
+          <Route path='/changePlanSurvey1' element={<PlanCallPage />}></Route>
+          <Route path='/changePlanSurvey2' element={<ChangePlanSurvey2Page />}></Route>
         </Routes>
       </BrowserRouter>
     </ApolloProvider>

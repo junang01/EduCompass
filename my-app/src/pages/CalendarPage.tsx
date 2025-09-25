@@ -306,7 +306,7 @@ const CalendarPage = () => {
           <ul className="sidebar-menu">
             <li className="active"><a href="#">캘린더 조회</a></li>
             <hr />
-            <li className="active"><a href="#">캘린더 조정</a></li>
+            <li className="active"><Link to="/change">학습 계획 조정</Link></li>
             <hr />
             <li className="active"><a href="#">조정 내용 요약</a></li>
             <hr />

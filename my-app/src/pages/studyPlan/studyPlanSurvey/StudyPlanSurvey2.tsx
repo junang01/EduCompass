@@ -6,7 +6,7 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import dayjs, { Dayjs } from "dayjs";
 import { gql, useMutation } from "@apollo/client";
 import { StudyTime } from "./StudyPlanSurvey1";
-import { Navigate, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 const CREATE_STUDY_PLAN = gql`
   mutation CreateStudyPlan($createStudyPlanInput: CreateStudyPlanInput!) {
@@ -83,7 +83,7 @@ const StudyPlanSurvey2Page: React.FC<SurveyPage2Props> = ({
   const navigate = useNavigate();
 
   const addSubject = () => {
-    setSubjects([...subjects, {
+    setSubjects(prev => [...prev, {
       subject: "",
       subSubject: "",
       level: "",
@@ -95,12 +95,29 @@ const StudyPlanSurvey2Page: React.FC<SurveyPage2Props> = ({
   };
 
   const removeSubject = (index: number) => {
-    const updated = [...subjects];
-    updated.splice(index, 1);
-    setSubjects(updated);
+    setSubjects(prev => prev.filter((_, i) => i !== index));
   };
 
-  const formatDate = (date: Dayjs | null) => date ? date.format("YYYY-MM-DDTHH:mm:ssZ") : "";
+  // ===== 안전 유틸 =====
+  const toISO = (date?: Dayjs | null, time?: Dayjs | null) =>
+    date
+      ? date
+          .hour(time?.hour() ?? 0)
+          .minute(time?.minute() ?? 0)
+          .second(0)
+          .millisecond(0)
+          .toISOString()
+      : undefined;
+
+  const stripEmpty = <T extends object>(obj: T): T =>
+    JSON.parse(
+      JSON.stringify(obj, (_k, v) => (v === "" || v === undefined ? undefined : v))
+    );
+
+  const toIntOrUndef = (s?: string) => {
+    const n = Number(s);
+    return Number.isFinite(n) ? n : undefined;
+  };
 
   const handleSubmit = useCallback(async () => {
     if (!studyStartDate || !studyEndDate) {
@@ -108,44 +125,62 @@ const StudyPlanSurvey2Page: React.FC<SurveyPage2Props> = ({
       return;
     }
 
-    const variables = {
-      createStudyPlanInput: {
-        title: planTitle,
-        studyPeriod: `${studyStartDate.format("YYYY-MM-DD")} ~ ${studyEndDate.format("YYYY-MM-DD")}`,
-        learningStyle: learningStyle || "기본형",
-        reviewDays,
-        missedPlanDays: catchupDays,
-        availableStudyScheduleInput: availableTimes.map((item) => ({
-          day: dayjs(item.start).format("dddd"),
-          timeRanges: [
-            {
-              startTime: dayjs(item.start).format("HH:mm"),
-              endTime: dayjs(item.end).format("HH:mm"),
-            },
-          ],
-        })),
-        subjects: subjects.map((entry) => ({
-          subject: entry.subSubject && entry.subSubject !== "해당 없음" ? entry.subSubject : entry.subject,
-          studyLevel: entry.level,
-          studyBookInput: entry.books.map((book, i) => ({
-            bookName: book.title,
-            bookIndex: book.description,
-            bookReview: entry.bookGoals?.[i] || "1회독",
-          })),
-          examContentInput: entry.exams.map((exam) => ({
-            examcontent: exam.title,
-            examStartDay: formatDate(exam.startDate),
-            examLastScore: entry.prevScore || "70",
-            examGoalScore: entry.goalScore || "90",
-          })),
-        })),
-      },
-    };
+    // 공부 가능 시간: ISO start/end 로 변환 (빈 값 제거)
+    const availableStudyScheduleInput =
+      (availableTimes ?? [])
+        .filter(t => t.start && t.end)
+        .map(t => ({
+          startTime: dayjs(t.start).toISOString(),
+          endTime: dayjs(t.end).toISOString(),
+          content: "공부시간",
+        }));
 
-    console.log("📤 보내는 createStudyPlanInput:", variables.createStudyPlanInput, variables.createStudyPlanInput.availableStudyScheduleInput.map(s=> s.timeRanges.map(t=> `${t.startTime}, ${t.endTime}`).join('\n')));
+    // 과목/교재/시험 payload 구성
+    const subjectsPayload = subjects.map((entry) => {
+      const subjectName =
+        entry.subSubject && entry.subSubject !== "해당 없음"
+          ? entry.subSubject
+          : entry.subject;
+
+      const studyBookInput = (entry.books ?? [])
+        .filter(b => b.title && b.description)
+        .map((book, i) => ({
+          bookName: book.title,
+          bookIndex: book.description,
+          bookReview: entry.bookGoals?.[i] || "1회독",
+        }));
+
+      const examContentInput = (entry.exams ?? [])
+        .filter(exam => exam.title && exam.startDate)
+        .map(exam => ({
+          examcontent: exam.title,
+          examStartDay: toISO(exam.startDate),
+          examLastScore: toIntOrUndef(entry.prevScore) ?? 70,
+          examGoalScore: toIntOrUndef(entry.goalScore) ?? 90,
+        }));
+
+      return stripEmpty({
+        subject: subjectName,
+        studyLevel: entry.level,
+        studyBookInput,
+        examContentInput,
+      });
+    });
+
+    const createStudyPlanInput = stripEmpty({
+      title: planTitle.trim(),
+      studyPeriod: `${studyStartDate.format("YYYY-MM-DD")} ~ ${studyEndDate.format("YYYY-MM-DD")}`,
+      learningStyle: learningStyle || "기본형",
+      reviewDays,
+      missedPlanDays: catchupDays,
+      availableStudyScheduleInput,
+      subjects: subjectsPayload,
+    });
+
+    console.log("📤 createStudyPlanInput", createStudyPlanInput);
 
     try {
-      const res = await createStudyPlan({ variables });
+      const res = await createStudyPlan({ variables: { createStudyPlanInput } });
       alert("계획 생성 완료!");
       console.log("서버 응답:", res.data);
       navigate("/calendar");
@@ -153,26 +188,36 @@ const StudyPlanSurvey2Page: React.FC<SurveyPage2Props> = ({
       console.error("계획 생성 실패:", error);
       alert("계획 생성에 실패했습니다.");
     }
-  }, [planTitle, studyStartDate, studyEndDate, availableTimes, subjects, learningStyle, reviewDays, catchupDays, createStudyPlan]);
+  }, [
+    planTitle,
+    studyStartDate,
+    studyEndDate,
+    availableTimes,
+    subjects,
+    learningStyle,
+    reviewDays,
+    catchupDays,
+    createStudyPlan,
+    navigate,
+  ]);
 
   useEffect(() => {
-  const isValid =
-    !!planTitle &&
-    !!studyStartDate &&
-    !!studyEndDate &&
-    subjects.length > 0 &&
-    subjects.every((subject) =>
-      !!(subject.subject || subject.subSubject) &&
-      !!subject.level &&
-      subject.books.length > 0 &&
-      subject.books.every(book => !!book.title && !!book.description) &&
-      subject.exams.length > 0 &&
-      subject.exams.every(exam => !!exam.title && !!exam.startDate)
-    );
+    const isValid =
+      !!planTitle &&
+      !!studyStartDate &&
+      !!studyEndDate &&
+      subjects.length > 0 &&
+      subjects.every((subject) =>
+        !!(subject.subject || subject.subSubject) &&
+        !!subject.level &&
+        subject.books.length > 0 &&
+        subject.books.every(book => !!book.title && !!book.description) &&
+        subject.exams.length > 0 &&
+        subject.exams.every(exam => !!exam.title && !!exam.startDate)
+      );
 
     onValidationChange(isValid);
-  }, [planTitle, studyStartDate, studyEndDate, subjects]);
-
+  }, [planTitle, studyStartDate, studyEndDate, subjects, onValidationChange]);
 
   useEffect(() => {
     onSubmitRequest(handleSubmit);
@@ -198,9 +243,7 @@ const StudyPlanSurvey2Page: React.FC<SurveyPage2Props> = ({
         </section>
 
         <section className="section-box">
-          <div className="section-title">
-            계획 기간 입력
-          </div>
+          <div className="section-title">계획 기간 입력</div>
           <div className="semester-period">
             <div className="semester-label">학습 진행 기간</div>
             <div className="semester-options">
@@ -208,12 +251,7 @@ const StudyPlanSurvey2Page: React.FC<SurveyPage2Props> = ({
                 label="시작일"
                 value={studyStartDate}
                 onChange={(newValue) => {
-                  console.log("📅 선택한 시작일:", newValue?.format("YYYY-MM-DD HH:mm:ss"));
-                  if (
-                    newValue &&
-                    studyEndDate &&
-                    dayjs(newValue).isAfter(studyEndDate)
-                  ) {
+                  if (newValue && studyEndDate && dayjs(newValue).isAfter(studyEndDate)) {
                     alert("시작일은 종료일보다 앞서야 합니다.");
                     return;
                   }
@@ -225,11 +263,7 @@ const StudyPlanSurvey2Page: React.FC<SurveyPage2Props> = ({
                 label="종료일"
                 value={studyEndDate}
                 onChange={(newValue) => {
-                  if (
-                    newValue &&
-                    studyStartDate &&
-                    dayjs(newValue).diff(studyStartDate, "day") > 92
-                  ) {
+                  if (newValue && studyStartDate && dayjs(newValue).diff(studyStartDate, "day") > 92) {
                     alert("학습 기간은 최대 3개월까지만 설정할 수 있습니다.");
                     return;
                   }
@@ -285,27 +319,33 @@ const StudyPlanSurvey2Page: React.FC<SurveyPage2Props> = ({
         </section>
 
         {subjects.map((entry, idx) => (
-        <section className="section-box">
-          <div key={idx}>
+          <section className="section-box" key={idx}>
             <div className="subject-select-box-first">
               <label htmlFor="subject-select" className="subject-select-label">과목</label>
-              <select value={entry.subject} onChange={(e) => {
-                const updated = [...subjects];
-                updated[idx].subject = e.target.value;
-                updated[idx].subSubject = "";
-                setSubjects(updated);
-              }} className="subject-select">
+              <select
+                value={entry.subject}
+                onChange={(e) => {
+                  const updated = [...subjects];
+                  updated[idx].subject = e.target.value;
+                  updated[idx].subSubject = "";
+                  setSubjects(updated);
+                }}
+                className="subject-select"
+              >
                 <option value="">-- 선택 --</option>
                 {Object.keys(subSubjects).map((subject) => (
                   <option key={subject} value={subject}>{subject}</option>
                 ))}
               </select>
               {subSubjects[entry.subject] && (
-                <select value={entry.subSubject} onChange={(e) => {
-                  const updated = [...subjects];
-                  updated[idx].subSubject = e.target.value;
-                  setSubjects(updated);
-                }}>
+                <select
+                  value={entry.subSubject}
+                  onChange={(e) => {
+                    const updated = [...subjects];
+                    updated[idx].subSubject = e.target.value;
+                    setSubjects(updated);
+                  }}
+                >
                   <option value="">-- 세부 과목 선택 --</option>
                   {subSubjects[entry.subject].map((sub) => (
                     <option key={sub} value={sub}>{sub}</option>
@@ -451,8 +491,7 @@ const StudyPlanSurvey2Page: React.FC<SurveyPage2Props> = ({
             </div>
 
             <button className="delete-button" onClick={() => removeSubject(idx)}>과목 삭제</button>
-          </div>
-        </section>
+          </section>
         ))}
 
         <button className="delete-button" onClick={addSubject}>+ 과목 추가</button>
