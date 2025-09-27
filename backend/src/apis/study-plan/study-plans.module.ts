@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { StudyPlansService } from './study-plans.service';
 import { StudyPlansResolver } from './study-plans.resolver';
 import { StudyPlan } from './entities/study-plan.entity';
+import { ExamSchedule } from './entities/exam-schedule.entity';
 import { Subject } from '../subject/entities/subject.entity';
 import { StudySchedule } from '../studySchedule/entities/studySchedule.entity';
 import { SubjectModule } from '../subject/subject.module';
@@ -13,7 +14,7 @@ import { ChatGptPrompt } from './entities/chatGptPrompt.entity';
 import { StudyScheduleService } from '../studySchedule/studyschedule.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([StudyPlan, Subject, StudySchedule, FeatureUsage, ChatGptPrompt]), SubjectModule, UsersModule],
+  imports: [TypeOrmModule.forFeature([StudyPlan, ExamSchedule, Subject, StudySchedule, FeatureUsage, ChatGptPrompt]), SubjectModule, UsersModule],
 
   providers: [StudyPlansResolver, StudyPlansService, FeatureUsageService, StudyScheduleService],
 

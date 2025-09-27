@@ -11,11 +11,11 @@ export class FeatureUsage {
   id: number;
 
   @Field(() => Date)
-  @Column({ name: 'last_use' })
+  @Column({ name: 'last_use', nullable: true })
   lastUse: Date;
 
   @Field(() => String)
-  @Column({ name: 'feature_name'})
+  @Column({ name: 'feature_name' })
   featureName: string;
 
   @Field(() => Number)
