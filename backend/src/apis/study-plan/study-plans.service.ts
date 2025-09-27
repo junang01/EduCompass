@@ -171,6 +171,24 @@ export class StudyPlansService {
 
     return await this.examScheduleRepository.save(examSchedules);
   }
+
+  async updateExamSchedules({ examUpdateContentInput, studyPlan }: { examUpdateContentInput: any[]; studyPlan: StudyPlan }): Promise<ExamSchedule[]> {
+    // 1. 기존 시험일정 삭제
+    await this.examScheduleRepository.delete({ studyPlan: { id: studyPlan.id } });
+
+    // 2. 새로운 시험일정 저장
+    const examSchedules = examUpdateContentInput.map((exam) =>
+      this.examScheduleRepository.create({
+        examContent: exam.examcontent,
+        examStartDay: exam.examStartDay,
+        examLastScore: exam.examLastScore,
+        examGoalScore: exam.examGoalScore,
+        studyPlan: studyPlan,
+      }),
+    );
+
+    return await this.examScheduleRepository.save(examSchedules);
+  }
   // 파싱하는 부분 공통 로직으로 분리하기.
   async updateStudyPlan(updateScheduleInput: IStudyPlanServiceUpdateSchedule) {
     // 1. api 호출 준비
@@ -237,6 +255,9 @@ export class StudyPlansService {
       // 5. 응답 받아 파싱해 저장
       const saveStudyPlan = await this.studyPlanRepository.save(studyPlan);
       const savedSchedules = await this.parseStudySchedule({ newSchedules, studyPlan, userId });
+
+      // 6. 기존 시험일정 삭제 후 새로운 시험일정 저장
+      await this.updateExamSchedules({ examUpdateContentInput, studyPlan });
 
       saveStudyPlan.schedules = savedSchedules;
       return saveStudyPlan;

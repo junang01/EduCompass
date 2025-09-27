@@ -3,19 +3,17 @@ import { AvailableStudyScheduleInput } from './create-study-plan.input';
 
 @InputType()
 export class UpdateStudyPlanInput {
-  @Field(() =>Number)
-  studyPlanId:number;
+  @Field(() => Number)
+  studyPlanId: number;
 
-  @Field(() =>[AvailableStudyScheduleInput])
+  @Field(() => [AvailableStudyScheduleInput])
   availableStudyScheduleInput: AvailableStudyScheduleInput[];
 
   @Field(() => [ExamUpdateContentInput])
-  examUpdateContentInput:ExamUpdateContentInput[];
+  examUpdateContentInput: ExamUpdateContentInput[];
 
-  @Field( () => [HomeworkUpdateInput])
-  homeworkUpdateInput:HomeworkUpdateInput[];
-  
-
+  @Field(() => [HomeworkUpdateInput])
+  homeworkUpdateInput: HomeworkUpdateInput[];
 }
 @InputType()
 export class ExamUpdateContentInput {
@@ -27,19 +25,25 @@ export class ExamUpdateContentInput {
 
   @Field(() => String)
   examStartDay: string;
+
+  @Field(() => String)
+  examLastScore: string;
+
+  @Field(() => String)
+  examGoalScore: string;
 }
 
 @InputType()
-export class HomeworkUpdateInput{
+export class HomeworkUpdateInput {
   @Field(() => String)
-  homeworkName:string;
+  homeworkName: string;
 
   @Field(() => String)
   homeworkStartDay: string;
 
-  @Field( () => String)
+  @Field(() => String)
   homeworkEndDay: string;
 
-  @Field( () => String)
-  homeworkContent: string
+  @Field(() => String)
+  homeworkContent: string;
 }
