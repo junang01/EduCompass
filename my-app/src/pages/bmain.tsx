@@ -19,12 +19,60 @@ const BmainPage = () => {
   useEffect(() => {
     const userData = localStorage.getItem("user");
     if (userData) {
-      const user = JSON.parse(userData);
-      setUsername(user.name);
+      try {
+        const parsed = JSON.parse(userData);
+        console.log("🧾 parsed.user.name 확인:", parsed.user?.name);
+        setUsername(parsed.user?.name || ""); // ✅ 핵심 수정
+      } catch (error) {
+        console.error("❌ localStorage 파싱 실패:", error);
+      }
     }
   }, []);
 
   const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    const userData = localStorage.getItem("user");
+    if (userData) {
+      console.log("📦 유저 데이터:", JSON.parse(userData));
+    } else {
+      console.warn("⚠️ localStorage에 'user' 데이터 없음");
+    }
+
+
+    if (!userData) return;
+
+    const { accessToken } = JSON.parse(userData);
+
+    try {
+      const response = await fetch("http://localhost:4000/graphql", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`, // 헤더에 토큰 전달
+        },
+        credentials: "include", // 쿠키 있을 경우 포함
+        body: JSON.stringify({
+          query: `
+            mutation {
+              logout
+            }
+          `,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result?.data?.logout) {
+        localStorage.removeItem("user");
+        navigate("/");
+      } else {
+        console.error("❌ 서버 로그아웃 실패", result);
+      }
+    } catch (error) {
+      console.error("❌ 로그아웃 요청 중 오류 발생:", error);
+    }
+  };
 
   return (
     <>
@@ -45,10 +93,10 @@ const BmainPage = () => {
           </ul>
           <div className="log">
             <div className="login">
-              <Link to="/login">{username ? `${username}님` : "로그인"}</Link>
+              <Link to="/mypage">{username ? `${username}님` : "로그인"}</Link>
             </div>
             <div className="join">
-              <Link to="/">logout</Link>
+              <button className="logout-btn" onClick={handleLogout}>logout</button>
             </div>
           </div>
         </nav>
@@ -88,7 +136,7 @@ const BmainPage = () => {
 
               <div
                 className="grid_log_progress"
-                onClick={() => (window.location.href = "bmain.tsx")}
+                onClick={() => navigate("/status")}
                 style={{ cursor: "pointer" }}
               >
                 <h3>학습 현황 확인하러 가기</h3>
@@ -113,7 +161,7 @@ const BmainPage = () => {
                 <FontAwesomeIcon className="icon" icon={faCalendarPlus} size="2x" />
                 <div 
                   className="makeplan_overlay"
-                  onClick={() => (window.location.href = "makeplan.tsx")}
+                  onClick={() => navigate("/planStart")}
                 >
                   <h2>계획 생성 바로가기</h2>
                 </div>
@@ -121,7 +169,7 @@ const BmainPage = () => {
 
               <div
                 className="grid_log_calendar"
-                onClick={() => (window.location.href = "bmain.tsx")}
+                onClick={() => navigate("/calendar")}
                 style={{ cursor: "pointer" }}
               >
                 <h4>나의 캘린더 보러가기</h4>
@@ -147,7 +195,7 @@ const BmainPage = () => {
 
               <div
                 className="grid_log_mypage"
-                onClick={() => (window.location.href = "bmain.tsx")}
+                onClick={() => navigate("/mypage")}
                 style={{ cursor: "pointer" }}
               >
                 <h3>내 정보 확인하러 가기</h3>

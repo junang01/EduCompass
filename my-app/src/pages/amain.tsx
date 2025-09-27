@@ -26,7 +26,10 @@ const AmainPage = () => {
     if (isLoggedIn) {
       navigate(path);
     } else {
-      alert("로그인 후 사용할 수 있는 기능입니다.");
+      const confirmed = window.confirm("로그인 후 사용 가능한 기능입니다. 로그인하시겠습니까?");
+      if (confirmed) {
+        navigate("/login");
+      }
     }
   };
   

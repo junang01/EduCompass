@@ -117,45 +117,67 @@
 
 
 /* 모달 */
-.calendar-modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.3);
+.modal-header {
   display: flex;
-  align-items: center;
   justify-content: center;
-  z-index: 1000;
+  margin-bottom: 16px;
 }
 
-.calendar-modal {
-  background-color: #fff;
-  border: 2px solid #0047ab;
-  border-radius: 10px;
-  padding: 30px 40px;
-  width: 400px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+.modal-header-title {
+  font-size: 15px;
+  font-weight: bold;
+}
+
+.modal-input {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 14px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  background-color: #f5f5f5;
+  font-size: 14px;
+}
+
+.modal-date-display {
+  text-align: center;
+  font-weight: bold;
+  margin-bottom: 14px;
+  font-size: 14px;
+  background-color: #eaeaea;
+  padding: 8px;
+  border-radius: 4px;
+}
+
+.time-range {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.time-range input {
+  width: 45%;
+  padding: 8px;
+  font-size: 14px;
+}
+
+.time-range span {
+  font-size: 16px;
+  font-weight: bold;
 }
 
 .calendar-modal-actions {
   display: flex;
-  justify-content: space-between;
+  justify-content: space-around;
 }
 
 .calendar-modal-actions button {
-  flex: 1;
-  margin: 0 5px;
-  padding: 8px;
-  background-color: #ddd;
-  border: none;
-  border-radius: 5px;
+  border: solid 2px #001B75;
+  border-radius: 4px;
+  padding: 5px 15px;
+  background-color: white;
+  color: #001B75;
   font-weight: bold;
-}
-
-.calendar-modal-actions button:hover {
-  background-color: #ccc;
 }
 
 .calendar-detail-panel {
@@ -173,23 +195,60 @@
   z-index: 10;
 }
 
+.calendar-detail-panel input[type="text"] {
+  padding: 15px;
+  width: 100%;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+  margin-bottom: 12px;
+  background-color: #f9f9f9;
+  font-weight: bold;
+}
+.calendar-detail-panel input[type="date"] {
+  padding: 10px;
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 20px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+.detail-time-inputs {
+  display: flex;
+  flex-direction: column;
+  font-weight: bold;
+}
+
+.calendar-detail-panel input[type="time"] {
+  padding: 10px;
+  font-size: 12px;
+  font-weight: bold;
+  font-style: initial;
+}
+
 .detail-header {
   font-weight: bold;
   font-size: 18px;
   margin-bottom: 20px;
   color: #001B75;
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
 }
 
 .detail-body {
   flex: 1;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 10px;
+  width: 100%;
 }
 
 .detail-input,
 .detail-time-inputs input {
-  padding: 6px;
+  padding: 2px;
   border: 1px solid #ccc;
   border-radius: 4px;
 }
@@ -198,33 +257,47 @@
   display: flex;
   gap: 10px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .detail-actions {
   display: flex;
+  flex-direction: column;
   justify-content: space-between;
   margin-top: 20px;
 }
 
 .detail-actions button {
   flex: 1;
-  margin: 0 5px;
-  padding: 8px;
+  margin: 0 4px;
+  padding: 10px;
   font-weight: bold;
-  border-radius: 4px;
-  border: none;
+  border-radius: 5px;
+  transition: 0.2s ease;
+  cursor: pointer;
+  margin-bottom: 10px;
 }
 
 .btn-delete {
-  background-color: #ddd;
+  background-color: white;
+  border: 1px solid #e74c3c;
+  color: #e74c3c;
 }
 
 .btn-edit {
-  background-color: #999;
-  color: white;
+  background-color: white;
+  border: 1px solid #3498db;
+  color: #3498db;
 }
 
 .btn-close {
-  background-color: #001B75;
-  color: white;
+  background-color: white;
+  border: 1px solid #001B75;
+  color: #001B75;
+}
+
+.btn-delay {
+  background-color: white;
+  border: 1px solid hsl(323, 100%, 50%);
+  color: hsl(323, 100%, 50%);
 }

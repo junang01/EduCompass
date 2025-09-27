@@ -36,12 +36,7 @@
   display: flex;
   align-items: center;
   gap: 1rem;
-  margin-bottom: 1rem;
   flex-wrap: wrap;
-}
-
-.exam-row {
-  padding-top: 25px;
 }
 
 .exam-input, .book-title, .goal-label {
@@ -49,6 +44,31 @@
   border: 1px solid #ccc;
   border-radius: 6px;
   font-size: 0.95rem;
+}
+
+.grade-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.grade-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.grade-row input {
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  width: 200px;
+}
+
+.level-options label {
+  margin-right: 2rem;
+  font-size: 1rem;
 }
 
 .book-description {
@@ -117,6 +137,15 @@
   max-width: 400px;
 }
 
+.subject-select-box-first {
+  padding-top: 0;
+  padding-bottom: 10px;
+}
+
+.subject-select-box {
+  padding: 20px 0;
+}
+
 .subject-select-label {
   font-size: 1.1rem;
   font-weight: bold;
@@ -134,10 +163,9 @@
 .semester-period {
   display: flex;
   flex-direction: row;
+  align-items: center;
   gap: 0.5rem;
   margin-top: 25px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid rgb(196, 196, 196);
 }
 
 .semester-label {
@@ -189,4 +217,23 @@ input[type="checkbox"]:checked::after {
   height: 8px;
   background-color: #000000;
   border-radius: 50%;
+}
+
+.radio-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.radio-group label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 15px;
+}
+.optional {
+  font-size: 0.8em;
+  color: red;
+  margin-left: 6px;
+  font-weight: 500;
 }

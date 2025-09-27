@@ -1,11 +1,36 @@
 import React, { useEffect, useState } from "react";
 import '../css/planstyle.css';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 import dayjs, { Dayjs } from 'dayjs';
+import { useQuery, gql } from "@apollo/client";
+
+const FIND_STUDY_PLAN = gql`
+  query ($studyPlanId: Int!) {
+    findStudyPlan(studyPlanId: $studyPlanId) {
+      id
+      title
+      studyTimes {
+        day
+        startTime
+        endTime
+      }
+      examDates {
+        startDate
+        endDate
+        startTime
+        endTime
+      }
+      assignmentDates {
+        date
+        time
+      }
+    }
+  }
+`;
 
 const days = ['월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일'];
 
@@ -39,29 +64,62 @@ const commonSlotProps = {
 
 const PlanPage: React.FC = () => {
   const [username, setUsername] = useState<string>("");
-  
-    useEffect(() => {
-      const userData = localStorage.getItem("user");
-      if (userData) {
-        const user = JSON.parse(userData);
-        setUsername(user.name);
-      }
-    }, []);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const studyPlanId = location.state?.studyPlanId;
+
+  useEffect(() => {
+    const userData = localStorage.getItem("user");
+    if (userData) {
+      const user = JSON.parse(userData);
+      setUsername(user.name);
+    }
+  }, []);
 
   const [timeRows, setTimeRows] = useState<number[]>([0]);
   const [examRows, setExamRows] = useState<number[]>([0]);
-  const [assignmentRows] = useState<number[]>([0, 1, 2]);
-  const navigate = useNavigate();
-
+  const [assignmentDates, setAssignmentDates] = useState<{ date: Dayjs | null; time: Dayjs | null }[]>([
+    { date: null, time: null }
+  ]);
   const [examDates, setExamDates] = useState<{ startDate: Dayjs | null, endDate: Dayjs | null, startTime: Dayjs | null, endTime: Dayjs | null }[]>([
     { startDate: null, endDate: null, startTime: null, endTime: null }
-  ]);
-  const [assignmentDates, setAssignmentDates] = useState<{ date: Dayjs | null; time: Dayjs | null }[]>([
-    { date: null, time: null }, { date: null, time: null }, { date: null, time: null }
   ]);
   const [studyTimes, setStudyTimes] = useState<{ start: Dayjs | null, end: Dayjs | null }[][]>([
     days.map(() => ({ start: null, end: null }))
   ]);
+
+  const { data, loading, error } = useQuery(FIND_STUDY_PLAN, {
+    variables: { studyPlanId },
+    skip: !studyPlanId
+  });
+
+  useEffect(() => {
+    if (data?.findStudyPlan) {
+      const plan = data.findStudyPlan;
+
+      const convertedStudyTimes = [days.map((_, idx) => ({
+        start: plan.studyTimes[idx]?.startTime ? dayjs(plan.studyTimes[idx].startTime) : null,
+        end: plan.studyTimes[idx]?.endTime ? dayjs(plan.studyTimes[idx].endTime) : null
+      }))];
+      setStudyTimes(convertedStudyTimes);
+      setTimeRows([0]);
+
+      const convertedExamDates = plan.examDates.map((exam: any) => ({
+        startDate: exam.startDate ? dayjs(exam.startDate) : null,
+        endDate: exam.endDate ? dayjs(exam.endDate) : null,
+        startTime: exam.startTime ? dayjs(exam.startTime) : null,
+        endTime: exam.endTime ? dayjs(exam.endTime) : null
+      }));
+      setExamDates(convertedExamDates);
+      setExamRows(convertedExamDates.map((_: any, idx: number) => idx));
+
+      const convertedAssignments = plan.assignmentDates.map((assignment: any) => ({
+        date: assignment.date ? dayjs(assignment.date) : null,
+        time: assignment.time ? dayjs(assignment.time) : null
+      }));
+      setAssignmentDates(convertedAssignments);
+    }
+  }, [data]);
 
   const handleAdd = () => {
     setTimeRows(prev => [...prev, prev.length]);
@@ -126,12 +184,12 @@ const PlanPage: React.FC = () => {
             {timeRows.map((rowId, rowIndex) => (
               <div className="weekday-columns" key={`study-${rowId}`}>
                 {days.map((day, dayIndex) => (
-                  <div className="day-column" key={`${day}-${rowId}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                  <div className="day-column" key={`${day}-${rowId}`}>
                     {rowIndex === 0 && <div className="day-label">{day}</div>}
                     <TimePicker
                       label="시작시간"
                       value={studyTimes[rowIndex][dayIndex].start}
-                      onChange={(newValue: Dayjs | null) => {
+                      onChange={(newValue) => {
                         const updated = [...studyTimes];
                         updated[rowIndex][dayIndex].start = newValue;
                         setStudyTimes(updated);
@@ -142,7 +200,7 @@ const PlanPage: React.FC = () => {
                     <TimePicker
                       label="종료시간"
                       value={studyTimes[rowIndex][dayIndex].end}
-                      onChange={(newValue: Dayjs | null) => {
+                      onChange={(newValue) => {
                         const updated = [...studyTimes];
                         updated[rowIndex][dayIndex].end = newValue;
                         setStudyTimes(updated);
@@ -209,62 +267,48 @@ const PlanPage: React.FC = () => {
                     }}
                     slotProps={commonSlotProps}
                   />
-                  <input 
-                    type="text" 
-                    placeholder="시험 범위 입력" 
-                    className="range-memo-input" 
-                  />
+                  <input type="text" placeholder="시험 범위 입력" className="range-memo-input" />
                 </div>
               </div>
             ))}
           </section>
 
           <section className="schedule-section">
-  <div className="section-header-flex">
-    <h3 className="section-title">과제 일정 변경 및 추가</h3>
-    <div className="row-controls">
-      <button className="control-btn" onClick={() => {
-        setAssignmentDates(prev => [...prev, { date: null, time: null }]);
-      }}>+ 추가</button>
-      <button className="control-btn" onClick={() => {
-        setAssignmentDates(prev => prev.length > 1 ? prev.slice(0, -1) : prev);
-      }}>- 삭제</button>
-    </div>
-  </div>
+            <div className="section-header-flex">
+              <h3 className="section-title">과제 일정 변경 및 추가</h3>
+              <div className="row-controls">
+                <button className="control-btn" onClick={() => setAssignmentDates(prev => [...prev, { date: null, time: null }])}>+ 추가</button>
+                <button className="control-btn" onClick={() => setAssignmentDates(prev => prev.length > 1 ? prev.slice(0, -1) : prev)}> - 삭제</button>
+              </div>
+            </div>
 
-  {assignmentDates.map((entry, i) => (
-    <div className="schedule-row horizontal" key={`assignment-${i}`}>
-      <input type="text" placeholder="등록된 과제 이름" className="text-input" style={{ flex: '2' }} />
-      <DatePicker
-        label="마감일"
-        value={entry.date}
-        onChange={(newValue) => {
-          const updated = [...assignmentDates];
-          updated[i].date = newValue;
-          setAssignmentDates(updated);
-        }}
-        slotProps={commonSlotProps}
-      />
-      <TimePicker
-        label="마감시간"
-        value={entry.time}
-        onChange={(newValue) => {
-          const updated = [...assignmentDates];
-          updated[i].time = newValue;
-          setAssignmentDates(updated);
-        }}
-        slotProps={commonSlotProps}
-      />
-      <input
-  type="text"
-  placeholder="등록된 과제 메모"
-  className="text-input"
-  style={{ flex: '4' }}
-/>
-
-    </div>
-  ))}
-</section>
+            {assignmentDates.map((entry, i) => (
+              <div className="schedule-row horizontal" key={`assignment-${i}`}>
+                <input type="text" placeholder="등록된 과제 이름" className="text-input" style={{ flex: '2' }} />
+                <DatePicker
+                  label="마감일"
+                  value={entry.date}
+                  onChange={(newValue) => {
+                    const updated = [...assignmentDates];
+                    updated[i].date = newValue;
+                    setAssignmentDates(updated);
+                  }}
+                  slotProps={commonSlotProps}
+                />
+                <TimePicker
+                  label="마감시간"
+                  value={entry.time}
+                  onChange={(newValue) => {
+                    const updated = [...assignmentDates];
+                    updated[i].time = newValue;
+                    setAssignmentDates(updated);
+                  }}
+                  slotProps={commonSlotProps}
+                />
+                <input type="text" placeholder="등록된 과제 메모" className="text-input" style={{ flex: '4' }} />
+              </div>
+            ))}
+          </section>
         </LocalizationProvider>
 
         <div className="submit-btn-wrapper">

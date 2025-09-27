@@ -281,3 +281,9 @@ i {
 .grid_log_mypage:hover {
   transform: scale(1.02);
 }
+
+.logout-btn {
+  background-color: white;
+  font-size: 17px;
+  cursor: pointer;
+}

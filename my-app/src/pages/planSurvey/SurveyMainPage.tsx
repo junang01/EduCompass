@@ -1,58 +1,65 @@
 import React, { useEffect, useState } from "react";
 import SurveyPage1 from "./SurveyPage1";
 import SurveyPage2 from "./SurveyPage2";
-import SurveyPage3 from "./SurveyPage3";
-import SurveyPage4 from "./SurveyPage4";
-import { Link } from "react-router-dom";
+import { StudyTime } from "./SurveyPage1";
+import { Link, useNavigate } from "react-router-dom";
 import "../../css/surveyMainPage.css";
 
 const SurveyMainPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [username, setUsername] = useState<string>("");
+  const [availableTimes, setAvailableTimes] = useState<StudyTime[]>([]);
 
   // 유효성 상태 관리
   const [page1Valid, setPage1Valid] = useState(false);
   const [page2Valid, setPage2Valid] = useState(false);
-  const [page3Valid, setPage3Valid] = useState(false);
+
+  // 2페이지 제출 함수 저장
+  const [submitFn, setSubmitFn] = useState<() => Promise<void>>(() => async () => {});
 
   useEffect(() => {
     const userData = localStorage.getItem("user");
     if (userData) {
-      const user = JSON.parse(userData);
-      setUsername(user.name);
+      try {
+        const parsed = JSON.parse(userData);
+        console.log("🧾 parsed.user.name 확인:", parsed.user?.name);
+        setUsername(parsed.user?.name || ""); // ✅ 핵심 수정
+      } catch (error) {
+        console.error("❌ localStorage 파싱 실패:", error);
+      }
     }
   }, []);
 
   const renderPage = () => {
     switch (currentPage) {
       case 1:
-        return <SurveyPage1 onValidationChange={setPage1Valid} />;
+        return (
+          <SurveyPage1 
+            onValidationChange={setPage1Valid} 
+            onUpdateAvailableTimes={setAvailableTimes}
+          />
+        );
       case 2:
         return (
           <SurveyPage2
             onValidationChange={setPage2Valid}
             onUpdateBooks={(books) => {
-              console.log("books:", books);
-              // 추후 상태로 저장 가능
+              console.log("📚 books:", books);
             }}
             onUpdateExams={(exams) => {
-              console.log("exams:", exams);
+              console.log("📝 exams:", exams);
             }}
             onUpdatePeriod={(period) => {
-              console.log("period:", period);
+              console.log("📅 period:", period);
             }}
+            availableTimes={availableTimes}
+            onSubmitRequest={(fn) => setSubmitFn(() => fn)} // ✅ 함수 등록
           />
         );
-      case 3:
-        return <SurveyPage3 onValidationChange={setPage3Valid} />;
-      case 4:
-        return <SurveyPage4 />;
-      default:
-        return <SurveyPage1 onValidationChange={setPage1Valid} />;
     }
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentPage === 1 && !page1Valid) {
       alert("1페이지는 필수 항목입니다. 내용을 입력해주세요.");
       return;
@@ -61,15 +68,69 @@ const SurveyMainPage = () => {
       alert("2페이지는 필수 항목입니다. 내용을 입력해주세요.");
       return;
     }
-    if (currentPage === 3 && !page3Valid) {
-      alert("3페이지는 필수 항목입니다. 내용을 입력해주세요.");
-      return;
+
+    if (currentPage === 2) {
+      try {
+        console.log("[DEBUG] StudyPlan 제출 시도");
+        await submitFn();
+        console.log("[DEBUG] StudyPlan 제출 성공");
+      } catch (err) {
+        console.error("[DEBUG] StudyPlan 제출 실패:", err);
+        alert("2페이지 계획 생성에 실패했습니다.");
+        return; // 실패 시 다음 페이지로 넘어가지 않도록 차단
+      }
     }
-    if (currentPage < 4) setCurrentPage(prev => prev + 1);
+
+    if (currentPage < 4) setCurrentPage((prev) => prev + 1);
   };
 
   const handlePrev = () => {
-    if (currentPage > 1) setCurrentPage(prev => prev - 1);
+    if (currentPage > 1) setCurrentPage((prev) => prev - 1);
+  };
+
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    const userData = localStorage.getItem("user");
+    if (userData) {
+      console.log("📦 유저 데이터:", JSON.parse(userData));
+    } else {
+      console.warn("⚠️ localStorage에 'user' 데이터 없음");
+    }
+
+
+    if (!userData) return;
+
+    const { accessToken } = JSON.parse(userData);
+
+    try {
+      const response = await fetch("http://localhost:4000/graphql", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`, // 헤더에 토큰 전달
+        },
+        credentials: "include", // 쿠키 있을 경우 포함
+        body: JSON.stringify({
+          query: `
+            mutation {
+              logout
+            }
+          `,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result?.data?.logout) {
+        localStorage.removeItem("user");
+        navigate("/");
+      } else {
+        console.error("❌ 서버 로그아웃 실패", result);
+      }
+    } catch (error) {
+      console.error("❌ 로그아웃 요청 중 오류 발생:", error);
+    }
   };
 
   return (
@@ -77,8 +138,9 @@ const SurveyMainPage = () => {
       <header>
         <nav>
           <h2>
-            <Link to="/">
-              Edu<br />Compass
+            <Link to="/main">
+              Edu<br />
+              Compass
             </Link>
           </h2>
           <ul>
@@ -106,9 +168,15 @@ const SurveyMainPage = () => {
             <button className="planBtn" onClick={handlePrev} disabled={currentPage === 1}>
               이전
             </button>
-            <button className="planBtn" onClick={handleNext} disabled={currentPage === 4}>
-              다음
-            </button>
+            {currentPage === 2 ? (
+              <button className="planBtn" onClick={handleNext}>
+                제출
+              </button>
+            ) : (
+              <button className="planBtn" onClick={handleNext}>
+                다음
+              </button>
+            )}
           </div>
         </div>
       </div>

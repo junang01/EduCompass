@@ -7,6 +7,7 @@ const LOGIN_MUTATION = gql`
   mutation Login($input: LoginInput!) {
     login(input: $input) {
       accessToken
+      refreshToken
       user {
         id
         email
@@ -35,11 +36,11 @@ const LoginPage = () => {
         },
       });
   
-      const accessToken = data.login.accessToken;
-      const user = data.login.user;
-  
-      localStorage.setItem("token", accessToken);
-      localStorage.setItem("user", JSON.stringify(user)); // 사용자 정보 저장
+      localStorage.setItem("user", JSON.stringify({
+        accessToken: data.login.accessToken,
+        refreshToken: data.login.refreshToken,
+        user: data.login.user,
+      }));
   
       navigate("/main");
     } catch (error: any) {

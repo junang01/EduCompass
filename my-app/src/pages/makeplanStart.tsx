@@ -9,14 +9,63 @@ const MakeplanStartPage = () => {
     useEffect(() => {
       const userData = localStorage.getItem("user");
       if (userData) {
-        const user = JSON.parse(userData);
-        setUsername(user.name);
+        try {
+          const parsed = JSON.parse(userData);
+          console.log("🧾 parsed.user.name 확인:", parsed.user?.name);
+          setUsername(parsed.user?.name || ""); // ✅ 핵심 수정
+        } catch (error) {
+          console.error("❌ localStorage 파싱 실패:", error);
+        }
       }
     }, []);
 
+      const navigate = useNavigate();
+    
+      const handleLogout = async () => {
+        const userData = localStorage.getItem("user");
+        if (userData) {
+          console.log("📦 유저 데이터:", JSON.parse(userData));
+        } else {
+          console.warn("⚠️ localStorage에 'user' 데이터 없음");
+        }
+    
+    
+        if (!userData) return;
+    
+        const { accessToken } = JSON.parse(userData);
+    
+        try {
+          const response = await fetch("http://localhost:4000/graphql", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${accessToken}`, // 헤더에 토큰 전달
+            },
+            credentials: "include", // 쿠키 있을 경우 포함
+            body: JSON.stringify({
+              query: `
+                mutation {
+                  logout
+                }
+              `,
+            }),
+          });
+    
+          const result = await response.json();
+    
+          if (result?.data?.logout) {
+            localStorage.removeItem("user");
+            navigate("/");
+          } else {
+            console.error("❌ 서버 로그아웃 실패", result);
+          }
+        } catch (error) {
+          console.error("❌ 로그아웃 요청 중 오류 발생:", error);
+        }
+      };
+
   return (
     <>
-      {/* 상단 네비게이션 */}
       <header>
         <nav>
           <h2>
@@ -35,10 +84,10 @@ const MakeplanStartPage = () => {
           </ul>
           <div className="log">
             <div className="login">
-              <Link to="/login">{username ? `${username}님` : "로그인"}</Link>
+              <Link to="/mypage">{username ? `${username}님` : "로그인"}</Link>
             </div>
             <div className="join">
-              <Link to="/">logout</Link>
+              <button className="logout-btn" onClick={handleLogout}>logout</button>
             </div>
           </div>
         </nav>
