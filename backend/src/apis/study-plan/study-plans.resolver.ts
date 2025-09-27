@@ -21,10 +21,10 @@ export class StudyPlansResolver {
   @Mutation(() => StudyPlan)
   async createStudyPlan(@Args('createStudyPlanInput') createStudyPlanInput: CreateStudyPlanInput, @CurrentUser() user: User): Promise<StudyPlan> {
     const userId = user.id;
-    const featureName = 'CreateStudyPlan';
-    const findUsageReturn = await this.featureUsageService.canUsage({ userId, featureName });
+    // const featureName = 'CreateStudyPlan';
+    // const findUsageReturn = await this.featureUsageService.canUsage({ userId, featureName });
     const studyPlan = await this.studyPlansService.createStudyPlan({ userId, createStudyPlanInput });
-    await this.featureUsageService.saveUsage({ userId, featureName }, findUsageReturn);
+    // await this.featureUsageService.saveUsage({ userId, featureName }, findUsageReturn);
     return studyPlan;
   }
 
@@ -58,6 +58,15 @@ export class StudyPlansResolver {
     const studyPlan = await this.studyPlansService.updateStudyPlan({userId, updateStudyPlanInput});
     await this.featureUsageService.saveUsage({ userId, featureName }, findUsageReturn);
     return studyPlan
+  }
+  @UseGuards(GqlAuthGuard)
+  @Mutation(() => StudyPlan)
+  async gura(
+    @Args('studyPlanId',{ type: () => Int }) studyPlanId:number,
+    @CurrentUser() user:User
+  ):Promise<StudyPlan>{
+    const userId = user.id
+    return await this.studyPlansService.seedDummySchedules(studyPlanId,userId )
   }
 
 }
