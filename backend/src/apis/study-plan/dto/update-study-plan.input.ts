@@ -11,10 +11,8 @@ export class UpdateStudyPlanInput {
 
   @Field(() => [ExamUpdateContentInput])
   examUpdateContentInput: ExamUpdateContentInput[];
-
-  @Field(() => [HomeworkUpdateInput])
-  homeworkUpdateInput: HomeworkUpdateInput[];
 }
+
 @InputType()
 export class ExamUpdateContentInput {
   @Field(() => String)
@@ -31,19 +29,4 @@ export class ExamUpdateContentInput {
 
   @Field(() => String)
   examGoalScore: string;
-}
-
-@InputType()
-export class HomeworkUpdateInput {
-  @Field(() => String)
-  homeworkName: string;
-
-  @Field(() => String)
-  homeworkStartDay: string;
-
-  @Field(() => String)
-  homeworkEndDay: string;
-
-  @Field(() => String)
-  homeworkContent: string;
 }

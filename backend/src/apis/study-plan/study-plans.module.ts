@@ -13,11 +13,29 @@ import { FeatureUsageService } from '../featureUsage/featureUsage.service';
 import { ChatGptPrompt } from './entities/chatGptPrompt.entity';
 import { StudyScheduleService } from '../studySchedule/studyschedule.service';
 
+// ✅ StudyStatus 모듈 import
+import { StudyStatusModule } from '../study-status/study-status.module';
+
 @Module({
-  imports: [TypeOrmModule.forFeature([StudyPlan, ExamSchedule, Subject, StudySchedule, FeatureUsage, ChatGptPrompt]), SubjectModule, UsersModule],
-
-  providers: [StudyPlansResolver, StudyPlansService, FeatureUsageService, StudyScheduleService],
-
+  imports: [
+    TypeOrmModule.forFeature([
+      StudyPlan,
+      ExamSchedule,
+      Subject,
+      StudySchedule,
+      FeatureUsage,
+      ChatGptPrompt,
+    ]),
+    SubjectModule,
+    UsersModule,
+    StudyStatusModule, // ✅ 추가
+  ],
+  providers: [
+    StudyPlansResolver,
+    StudyPlansService,
+    FeatureUsageService,
+    StudyScheduleService,
+  ],
   exports: [StudyPlansService],
 })
 export class StudyPlanModule {}

@@ -1,14 +1,15 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Calendar, momentLocalizer, View, SlotInfo } from "react-big-calendar";
 import moment from "moment";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import "./calendar.css";
 import { Link, useNavigate } from "react-router-dom";
-import axios from "axios";
 import { gql, useMutation } from "@apollo/client";
-import { useRef } from "react";
 
 const localizer = momentLocalizer(moment);
+
+/** DB 시각 그대로 표시: 'YYYY-MM-DD HH:mm:ss' → 로컬 Date */
+const toDbLocalDate = (s: string) => new Date(s.replace(" ", "T"));
 
 interface CalendarEvent {
   id: number;
@@ -17,6 +18,8 @@ interface CalendarEvent {
   end: Date;
   subjectName?: string;
   completed?: boolean;
+  studyPlanId: number; // ✅ 추가
+  subjectId: number;   // ✅ 추가
 }
 
 const FIND_SCHEDULE_DATE_RANGE = gql`
@@ -27,9 +30,8 @@ const FIND_SCHEDULE_DATE_RANGE = gql`
       endTime
       content
       completed
-      subject {
-        subjectName
-      }
+      studyPlan { id }                # ✅ 추가
+      subject { id subjectName }      # ✅ 추가
     }
   }
 `;
@@ -82,6 +84,20 @@ const CREATE_SCHEDULE = gql`
   }
 `;
 
+/** ✅ 학습 현황 저장(업서트) 트리거 */
+const SYNC_STUDY_STATUS_BY_PLAN = gql`
+  mutation SyncStudyStatusByPlan($id: Int!) {
+    syncStudyStatusByPlan(id: $id) {
+      id
+      completionRate
+      delayRate
+      remainingPercent
+      subject { id }
+      studyPlan { id }
+    }
+  }
+`;
+
 const CalendarPage = () => {
   const subjectColorMap = useRef<Record<string, string>>({});
   const [events, setEvents] = useState<CalendarEvent[]>([]);
@@ -108,7 +124,7 @@ const CalendarPage = () => {
   const [delaySchedule] = useMutation(DELAY_SCHEDULE);
   const [completeSchedule] = useMutation(COMPLETE_SCHEDULE);
   const [createSchedule] = useMutation(CREATE_SCHEDULE);
-
+  const [syncStudyStatusByPlan] = useMutation(SYNC_STUDY_STATUS_BY_PLAN); // ✅ 추가
 
   const getRandomColor = () => {
     const colors = [
@@ -125,33 +141,31 @@ const CalendarPage = () => {
     if (userData) {
       try {
         const parsed = JSON.parse(userData);
-        console.log("🧾 parsed.user.name 확인:", parsed.user?.name);
         setUsername(parsed.user?.name || "");
       } catch (error) {
         console.error("❌ localStorage 파싱 실패:", error);
       }
     }
 
-    const fetchEvents = async () => {
+    const fetchEventsFn = async () => {
       const startOfRange = moment(date).startOf(view === "month" ? "month" : "week").toISOString();
       const endOfRange = moment(date).endOf(view === "month" ? "month" : "week").toISOString();
 
       try {
         const { data } = await fetchSchedules({
-          variables: {
-            startTime: startOfRange,
-            endTime: endOfRange,
-          },
+          variables: { startTime: startOfRange, endTime: endOfRange },
         });
 
         if (data?.findScheduleDateRange) {
-          const formatted = data.findScheduleDateRange.map((s: any) => ({
+          const formatted: CalendarEvent[] = data.findScheduleDateRange.map((s: any) => ({
             id: s.id,
             title: `${s.subject?.subjectName || "과목 미정"} - ${s.content}`,
             subjectName: s.subject?.subjectName || "기타",
-            start: new Date(s.startTime),
-            end: new Date(s.endTime),
+            start: toDbLocalDate(s.startTime),
+            end: toDbLocalDate(s.endTime),
             completed: s.completed,
+            studyPlanId: s.studyPlan?.id ?? 0, // ✅ 매핑
+            subjectId: s.subject?.id ?? 0,     // ✅ 매핑
           }));
           setEvents(formatted);
         }
@@ -160,62 +174,53 @@ const CalendarPage = () => {
       }
     };
 
-    fetchEvents();
-  }, [date, view]);
+    fetchEventsFn();
+  }, [date, view, fetchSchedules]);
 
-const handleSave = async () => {
-  if (!selectedDate || !title.trim() || !startTime || !endTime) return;
+  const handleSave = async () => {
+    if (!selectedDate || !title.trim() || !startTime || !endTime) return;
 
-  const dateString = moment(selectedDate).format("YYYY-MM-DD");
-  const start = moment(`${dateString}T${startTime}`).toISOString();
-  const end = moment(`${dateString}T${endTime}`).toISOString();
+    const dateString = moment(selectedDate).format("YYYY-MM-DD");
+    const start = moment(`${dateString}T${startTime}`).toISOString();
+    const end = moment(`${dateString}T${endTime}`).toISOString();
 
-  try {
-    const { data } = await createSchedule({
-      variables: {
-        createStudyScheduleInput: {
-          content: title,
-          startTime: start,
-          endTime: end,
+    try {
+      const { data } = await createSchedule({
+        variables: {
+          createStudyScheduleInput: { content: title, startTime: start, endTime: end },
         },
-      },
-    });
+      });
 
-    const newEvent = data.createSchedule;
+      const newEvent = data.createSchedule;
 
-    setEvents([
-      ...events,
-      {
-        id: newEvent.id,
-        title: newEvent.content,
-        start: new Date(newEvent.startTime),
-        end: new Date(newEvent.endTime),
-        completed: false,
-      },
-    ]);
-  } catch (err) {
-    console.error("일정 추가 실패:", err);
-    alert("일정 추가에 실패했습니다.");
-  }
+      setEvents(prev => [
+        ...prev,
+        {
+          id: newEvent.id,
+          title: newEvent.content,
+          start: toDbLocalDate(newEvent.startTime),
+          end: toDbLocalDate(newEvent.endTime),
+          completed: false,
+          // 생성 직후엔 plan/subject id가 응답에 없을 수 있음 → 클릭 편집 시 서버에서 다시 가져오면 채워짐
+          studyPlanId: 0,
+          subjectId: 0,
+        },
+      ]);
+    } catch (err) {
+      console.error("일정 추가 실패:", err);
+      alert("일정 추가에 실패했습니다.");
+    }
 
-  setShowModal(false);
-  setTitle("");
-  setStartTime("");
-  setEndTime("");
-};
+    setShowModal(false);
+    setTitle("");
+    setStartTime("");
+    setEndTime("");
+  };
 
-  
   const navigate = useNavigate();
 
   const handleLogout = async () => {
     const userData = localStorage.getItem("user");
-    if (userData) {
-      console.log("📦 유저 데이터:", JSON.parse(userData));
-    } else {
-      console.warn("⚠️ localStorage에 'user' 데이터 없음");
-    }
-
-
     if (!userData) return;
 
     const { accessToken } = JSON.parse(userData);
@@ -225,20 +230,13 @@ const handleSave = async () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`, // 헤더에 토큰 전달
+          Authorization: `Bearer ${accessToken}`,
         },
-        credentials: "include", // 쿠키 있을 경우 포함
-        body: JSON.stringify({
-          query: `
-            mutation {
-              logout
-            }
-          `,
-        }),
+        credentials: "include",
+        body: JSON.stringify({ query: `mutation { logout }` }),
       });
 
       const result = await response.json();
-
       if (result?.data?.logout) {
         localStorage.removeItem("user");
         navigate("/");
@@ -270,8 +268,8 @@ const handleSave = async () => {
       await updateSchedule({
         variables: {
           updateScheduleInput: {
-            id: Number(selectedEvent.id), 
-            content: editTitle, // 수정한 제목
+            id: Number(selectedEvent.id),
+            content: editTitle,
             startTime: start,
             endTime: end,
           },
@@ -281,17 +279,17 @@ const handleSave = async () => {
       setEvents(prev =>
         prev.map(e =>
           e.id === selectedEvent.id
-            ? {
-                ...e,
-                title: editTitle,
-                start: new Date(start),
-                end: new Date(end),
-              }
+            ? { ...e, title: editTitle, start: toDbLocalDate(start), end: toDbLocalDate(end) }
             : e
         )
       );
 
-      setShowDetailModal(false); // 모달 닫기
+      // ✅ 저장(업서트) 트리거
+      if (selectedEvent.studyPlanId) {
+        await syncStudyStatusByPlan({ variables: { id: selectedEvent.studyPlanId } });
+      }
+
+      setShowDetailModal(false);
       alert("계획이 수정되었습니다.");
     } catch (err) {
       console.error("수정 실패:", err);
@@ -301,13 +299,18 @@ const handleSave = async () => {
 
   const handleDelete = async () => {
     if (!selectedEvent) return;
-
     const confirmed = window.confirm("정말로 이 계획을 삭제하시겠습니까?");
     if (!confirmed) return;
 
     try {
       await deleteSchedule({ variables: { id: Number(selectedEvent.id) } });
       setEvents(prev => prev.filter(e => e.id !== selectedEvent.id));
+
+      // ✅ 삭제도 현황 변화이므로 재집계 트리거
+      if (selectedEvent.studyPlanId) {
+        await syncStudyStatusByPlan({ variables: { id: selectedEvent.studyPlanId } });
+      }
+
       setShowDetailModal(false);
       alert("계획이 삭제되었습니다.");
     } catch (err) {
@@ -338,10 +341,15 @@ const handleSave = async () => {
       setEvents(prev =>
         prev.map(e =>
           e.id === selectedEvent.id
-            ? { ...e, title: editTitle, start: new Date(newStart), end: new Date(newEnd) }
+            ? { ...e, title: editTitle, start: toDbLocalDate(newStart), end: toDbLocalDate(newEnd) }
             : e
         )
       );
+
+      // ✅ 집계 저장 트리거
+      if (selectedEvent.studyPlanId) {
+        await syncStudyStatusByPlan({ variables: { id: selectedEvent.studyPlanId } });
+      }
 
       alert("계획이 성공적으로 미뤄졌습니다.");
       setShowDetailModal(false);
@@ -361,13 +369,15 @@ const handleSave = async () => {
 
       const newStatus = data.updateCompleted.completed;
 
-      // 모달 내에서도 상태 반영
-      setSelectedEvent((prev) => prev ? { ...prev, completed: newStatus } : prev);
-
-      // 전체 events 목록도 업데이트
-      setEvents((prev) =>
-        prev.map((e) => (e.id === selectedEvent.id ? { ...e, completed: newStatus } : e))
+      setSelectedEvent(prev => (prev ? { ...prev, completed: newStatus } : prev));
+      setEvents(prev =>
+        prev.map(e => (e.id === selectedEvent.id ? { ...e, completed: newStatus } : e))
       );
+
+      // ✅ 집계 저장 트리거
+      if (selectedEvent.studyPlanId) {
+        await syncStudyStatusByPlan({ variables: { id: selectedEvent.studyPlanId } });
+      }
     } catch (err) {
       console.error("✅ 완료 상태 변경 실패:", err);
       alert("계획 완료 여부 변경에 실패했습니다.");
@@ -378,7 +388,9 @@ const handleSave = async () => {
     <>
       <header className="survey-header">
         <nav>
-          <h2><Link to="/">Edu<br />Compass</Link></h2>
+          <h2>
+            <Link to="/">Edu<br />Compass</Link>
+          </h2>
           <ul>
             <li><Link to="/calendar">계획 캘린더</Link></li>
             <li><Link to="/planStart">AI 계획 생성</Link></li>
@@ -403,7 +415,7 @@ const handleSave = async () => {
           <ul className="sidebar-menu">
             <li className="active"><a href="#">캘린더 조회</a></li>
             <hr />
-            <li className="active"><Link to="/changePlan">캘린더 조정</Link></li>
+            <li className="active"><Link to="/change">캘린더 조정</Link></li>
             <hr />
           </ul>
         </div>
@@ -426,15 +438,13 @@ const handleSave = async () => {
               setShowModal(true);
             }}
             onSelectEvent={handleEventClick}
-            style={{ height: "100%" }}eventPropGetter={(event) => {
+            style={{ height: "100%" }}
+            eventPropGetter={(event) => {
               const subject = event.subjectName || "기타";
-
               if (!subjectColorMap.current[subject]) {
                 subjectColorMap.current[subject] = getRandomColor();
               }
-
               const bgColor = subjectColorMap.current[subject];
-
               return {
                 style: {
                   backgroundColor: bgColor,
@@ -489,7 +499,7 @@ const handleSave = async () => {
               <div className="detail-body">
                 <input
                   type="date"
-                  value={moment(editDate).format("YYYY-MM-DD")}
+                  value={moment(editDate!).format("YYYY-MM-DD")}
                   onChange={(e) => setEditDate(new Date(e.target.value))}
                 />
                 <div className="detail-time-inputs">
@@ -501,7 +511,7 @@ const handleSave = async () => {
                 <label>
                   <input
                     type="checkbox"
-                    checked={selectedEvent.completed}
+                    checked={!!selectedEvent.completed}
                     onChange={handleCompleteToggle}
                   />
                   이 계획을 완료했어요!

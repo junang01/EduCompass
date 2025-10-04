@@ -34,7 +34,7 @@ import { Book } from './apis/book/entities/book.entity';
         host: configService.get('DB_HOST') || 'localhost',
         port: configService.get('DB_PORT') || 3306,
         username: configService.get('DB_USERNAME') || 'root',
-        password: configService.get('DB_PASSWORD') || '20011128',
+        password: configService.get('DB_PASSWORD') || '1234',
         database: configService.get('DB_DATABASE') || 'new_db_edu',
         entities: [__dirname + '/**/*.entity{.ts,.js}', BookSave],
         synchronize: true,

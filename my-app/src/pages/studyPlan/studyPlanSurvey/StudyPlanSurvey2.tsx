@@ -5,7 +5,7 @@ import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import dayjs, { Dayjs } from "dayjs";
 import { gql, useMutation } from "@apollo/client";
-import { StudyTime } from "./StudyPlanSurvey1";
+import type { StudyTime } from "./StudyPlanSurvey1"; // ✅ StudyTime = AvailableStudySchedule alias
 import { useNavigate } from "react-router-dom";
 
 const CREATE_STUDY_PLAN = gql`
@@ -41,41 +41,97 @@ interface SubjectEntry {
 
 interface SurveyPage2Props {
   onValidationChange: (isValid: boolean) => void;
-  onUpdateBooks: (books: BookInput[]) => void;
-  onUpdateExams: (exams: ExamInput[]) => void;
-  onUpdatePeriod: (period: string) => void;
+  onUpdateBooks?: (books: BookInput[]) => void;
+  onUpdateExams?: (exams: ExamInput[]) => void;
+  onUpdatePeriod?: (period: string) => void;
   onSubmitRequest: (submitFn: () => Promise<void>) => void;
-  availableTimes: StudyTime[];
+  availableTimes: StudyTime[]; // ✅ { day, timeRanges }
 }
 
 const subSubjects: { [key: string]: string[] } = {
   국어: ["해당 없음", "화법과 작문", "언어와 매체"],
   수학: ["해당 없음", "확률과 통계", "미적분", "기하"],
-  제2외국어: ["해당 없음", "독일어", "프랑스어", "스페인어", "중국어", "일본어", "러시아어", "아랍어", "한문"],
-  사회탐구: ["해당 없음", "생활과 윤리", "윤리와 사상", "한국지리", "세계지리", "동아시아사", "세계사", "정치와 법", "경제", "사회·문화"],
-  과학탐구: ["해당 없음", "물리학 I", "물리학 Ⅱ", "화학 I", "화학 Ⅱ", "생명과학 I", "생명과학 Ⅱ", "지구과학 I", "지구과학 Ⅱ"]
+  제2외국어: [
+    "해당 없음",
+    "독일어",
+    "프랑스어",
+    "스페인어",
+    "중국어",
+    "일본어",
+    "러시아어",
+    "아랍어",
+    "한문",
+  ],
+  사회탐구: [
+    "해당 없음",
+    "생활과 윤리",
+    "윤리와 사상",
+    "한국지리",
+    "세계지리",
+    "동아시아사",
+    "세계사",
+    "정치와 법",
+    "경제",
+    "사회·문화",
+  ],
+  과학탐구: [
+    "해당 없음",
+    "물리학 I",
+    "물리학 Ⅱ",
+    "화학 I",
+    "화학 Ⅱ",
+    "생명과학 I",
+    "생명과학 Ⅱ",
+    "지구과학 I",
+    "지구과학 Ⅱ",
+  ],
 };
 
-const DAYS = ["월", "화", "수", "목", "금", "토", "일"];
+const DAYS = ["월", "화", "수", "목", "금", "토", "일"] as const;
+
+// ===== 공통 유틸 =====
+const stripEmpty = <T extends object>(obj: T): T =>
+  JSON.parse(
+    JSON.stringify(obj, (_k, v) =>
+      v === "" || v === undefined ? undefined : v
+    )
+  );
+
+const toIntOrUndef = (s?: string) => {
+  const n = Number(s);
+  return Number.isFinite(n) ? n : undefined;
+};
+
+/** ✅ StudyTime은 이미 { day, timeRanges } 구조 */
+const groupAvailableTimesByDay = (times: StudyTime[] = []) =>
+  times.map((t) => ({
+    day: t.day,
+    timeRanges: t.timeRanges.map((r) => ({
+      startTime: r.startTime,
+      endTime: r.endTime,
+    })),
+  }));
 
 const StudyPlanSurvey2Page: React.FC<SurveyPage2Props> = ({
   onSubmitRequest,
   availableTimes,
-  onValidationChange
+  onValidationChange,
 }) => {
   const [createStudyPlan] = useMutation(CREATE_STUDY_PLAN);
   const [planTitle, setPlanTitle] = useState("");
   const [studyStartDate, setStudyStartDate] = useState<Dayjs | null>(null);
   const [studyEndDate, setStudyEndDate] = useState<Dayjs | null>(null);
-  const [subjects, setSubjects] = useState<SubjectEntry[]>([{
-    subject: "",
-    subSubject: "",
-    level: "",
-    books: [{ title: "", description: "", file: null }],
-    exams: [{ title: "", startDate: null }],
-    prevScore: "",
-    goalScore: ""
-  }]);
+  const [subjects, setSubjects] = useState<SubjectEntry[]>([
+    {
+      subject: "",
+      subSubject: "",
+      level: "",
+      books: [{ title: "", description: "", file: null }],
+      exams: [{ title: "", startDate: null }],
+      prevScore: "",
+      goalScore: "",
+    },
+  ]);
   const [learningStyle, setLearningStyle] = useState<string | null>(null);
   const [reviewDays, setReviewDays] = useState<string[]>([]);
   const [catchupDays, setCatchupDays] = useState<string[]>([]);
@@ -83,40 +139,22 @@ const StudyPlanSurvey2Page: React.FC<SurveyPage2Props> = ({
   const navigate = useNavigate();
 
   const addSubject = () => {
-    setSubjects(prev => [...prev, {
-      subject: "",
-      subSubject: "",
-      level: "",
-      books: [{ title: "", description: "", file: null }],
-      exams: [{ title: "", startDate: null }],
-      prevScore: "",
-      goalScore: ""
-    }]);
+    setSubjects((prev) => [
+      ...prev,
+      {
+        subject: "",
+        subSubject: "",
+        level: "",
+        books: [{ title: "", description: "", file: null }],
+        exams: [{ title: "", startDate: null }],
+        prevScore: "",
+        goalScore: "",
+      },
+    ]);
   };
 
   const removeSubject = (index: number) => {
-    setSubjects(prev => prev.filter((_, i) => i !== index));
-  };
-
-  // ===== 안전 유틸 =====
-  const toISO = (date?: Dayjs | null, time?: Dayjs | null) =>
-    date
-      ? date
-          .hour(time?.hour() ?? 0)
-          .minute(time?.minute() ?? 0)
-          .second(0)
-          .millisecond(0)
-          .toISOString()
-      : undefined;
-
-  const stripEmpty = <T extends object>(obj: T): T =>
-    JSON.parse(
-      JSON.stringify(obj, (_k, v) => (v === "" || v === undefined ? undefined : v))
-    );
-
-  const toIntOrUndef = (s?: string) => {
-    const n = Number(s);
-    return Number.isFinite(n) ? n : undefined;
+    setSubjects((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = useCallback(async () => {
@@ -125,17 +163,10 @@ const StudyPlanSurvey2Page: React.FC<SurveyPage2Props> = ({
       return;
     }
 
-    // 공부 가능 시간: ISO start/end 로 변환 (빈 값 제거)
+    // ✅ 백엔드 스키마에 맞는 형태로 변환
     const availableStudyScheduleInput =
-      (availableTimes ?? [])
-        .filter(t => t.start && t.end)
-        .map(t => ({
-          startTime: dayjs(t.start).toISOString(),
-          endTime: dayjs(t.end).toISOString(),
-          content: "공부시간",
-        }));
+      groupAvailableTimesByDay(availableTimes);
 
-    // 과목/교재/시험 payload 구성
     const subjectsPayload = subjects.map((entry) => {
       const subjectName =
         entry.subSubject && entry.subSubject !== "해당 없음"
@@ -143,7 +174,7 @@ const StudyPlanSurvey2Page: React.FC<SurveyPage2Props> = ({
           : entry.subject;
 
       const studyBookInput = (entry.books ?? [])
-        .filter(b => b.title && b.description)
+        .filter((b) => b.title && b.description)
         .map((book, i) => ({
           bookName: book.title,
           bookIndex: book.description,
@@ -151,12 +182,16 @@ const StudyPlanSurvey2Page: React.FC<SurveyPage2Props> = ({
         }));
 
       const examContentInput = (entry.exams ?? [])
-        .filter(exam => exam.title && exam.startDate)
-        .map(exam => ({
-          examcontent: exam.title,
-          examStartDay: toISO(exam.startDate),
-          examLastScore: toIntOrUndef(entry.prevScore) ?? 70,
-          examGoalScore: toIntOrUndef(entry.goalScore) ?? 90,
+        .filter((exam) => exam.title && exam.startDate)
+        .map((exam) => ({
+          examcontent: String(exam.title),
+          examStartDay: dayjs(exam.startDate).toISOString(),
+          examLastScore: String(
+            toIntOrUndef(entry.prevScore) ?? entry.prevScore ?? "70"
+          ),
+          examGoalScore: String(
+            toIntOrUndef(entry.goalScore) ?? entry.goalScore ?? "90"
+          ),
         }));
 
       return stripEmpty({
@@ -169,19 +204,23 @@ const StudyPlanSurvey2Page: React.FC<SurveyPage2Props> = ({
 
     const createStudyPlanInput = stripEmpty({
       title: planTitle.trim(),
-      studyPeriod: `${studyStartDate.format("YYYY-MM-DD")} ~ ${studyEndDate.format("YYYY-MM-DD")}`,
+      studyPeriod: `${dayjs(studyStartDate).format(
+        "YYYY-MM-DD"
+      )} ~ ${dayjs(studyEndDate).format("YYYY-MM-DD")}`,
       learningStyle: learningStyle || "기본형",
       reviewDays,
       missedPlanDays: catchupDays,
-      availableStudyScheduleInput,
+      availableStudyScheduleInput, // ✅ { day, timeRanges }
       subjects: subjectsPayload,
     });
 
     console.log("📤 createStudyPlanInput", createStudyPlanInput);
 
     try {
-      const res = await createStudyPlan({ variables: { createStudyPlanInput } });
-      alert("계획 생성 완료!");
+      const res = await createStudyPlan({
+        variables: { createStudyPlanInput },
+      });
+      alert("계획 및 시험 일정 생성 완료!");
       console.log("서버 응답:", res.data);
       navigate("/calendar");
     } catch (error) {
@@ -207,13 +246,16 @@ const StudyPlanSurvey2Page: React.FC<SurveyPage2Props> = ({
       !!studyStartDate &&
       !!studyEndDate &&
       subjects.length > 0 &&
-      subjects.every((subject) =>
-        !!(subject.subject || subject.subSubject) &&
-        !!subject.level &&
-        subject.books.length > 0 &&
-        subject.books.every(book => !!book.title && !!book.description) &&
-        subject.exams.length > 0 &&
-        subject.exams.every(exam => !!exam.title && !!exam.startDate)
+      subjects.every(
+        (subject) =>
+          !!(subject.subject || subject.subSubject) &&
+          !!subject.level &&
+          subject.books.length > 0 &&
+          subject.books.every((book) => !!book.title && !!book.description) &&
+          subject.exams.length > 0 &&
+          subject.exams.every(
+            (exam) => !!exam.title && !!exam.startDate
+          )
       );
 
     onValidationChange(isValid);

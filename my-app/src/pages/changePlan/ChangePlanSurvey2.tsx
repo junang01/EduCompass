@@ -8,7 +8,7 @@ import { TimePicker } from "@mui/x-date-pickers/TimePicker";
 import dayjs, { Dayjs } from "dayjs";
 import { useQuery, gql, useMutation } from "@apollo/client";
 
-// ✅ StudyPlan 조회 쿼리: schedules + exams + homeworks
+/* ---------------- GraphQL ---------------- */
 const FIND_STUDY_PLAN = gql`
   query ($studyPlanId: Float!) {
     findStudyPlan(studyPlanId: $studyPlanId) {
@@ -21,20 +21,12 @@ const FIND_STUDY_PLAN = gql`
         endTime
         content
       }
-      # ↓↓↓ 여기는 서버 스키마에 맞게 이름/필드 조정 필요
-      exams {
+      examSchedules {
         id
-        subjectName
-        examcontent
+        examContent
         examStartDay
-        examEndDay
-      }
-      homeworks {
-        id
-        homeworkName
-        homeworkContent
-        homeworkStartDay
-        homeworkEndDay
+        examLastScore
+        examGoalScore
       }
     }
   }
@@ -49,6 +41,7 @@ const UPDATE_STUDY_PLAN = gql`
   }
 `;
 
+/* --------------- UI 상수/타입 --------------- */
 const days = ["월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"];
 
 const commonSlotProps = {
@@ -64,34 +57,38 @@ const commonSlotProps = {
   },
 };
 
-type StudyCell = { start: Dayjs | null; end: Dayjs | null };
-type ExamRow = {
-  name: string;
-  startDate: Dayjs | null;
-  endDate: Dayjs | null;
-  startTime: Dayjs | null;
-  endTime: Dayjs | null;
-  range?: string;
+type StudyCell = {
+  start: Dayjs | null;
+  end: Dayjs | null;
 };
-type HomeworkRow = { name: string; date: Dayjs | null; time: Dayjs | null; memo?: string };
+
+type ExamRow = {
+  examContent: string;
+  startDate: Dayjs | null;
+  startTime: Dayjs | null;
+  examLastScore?: string;
+  examGoalScore?: string;
+};
+
+/* 날짜+시간 합치기 */
+const combineDateTime = (d: Dayjs | null, t: Dayjs | null): Dayjs | null => {
+  if (!d || !t) return null;
+  return d.hour(t.hour()).minute(t.minute()).second(0).millisecond(0);
+};
 
 const ChangePlanSurvey2Page: React.FC = () => {
   const [username, setUsername] = useState<string>("");
   const [loadingAdjust, setLoadingAdjust] = useState(false);
 
-  const [timeRows, setTimeRows] = useState<number[]>([0]);
-  const [examRows, setExamRows] = useState<number[]>([0]);
+  const [timeRows, setTimeRows] = useState<number[]>([0]); // 학습시간 행 수
+  const [examRows, setExamRows] = useState<number[]>([0]); // 시험일정 행 수
 
   const [studyTimes, setStudyTimes] = useState<StudyCell[][]>([
     days.map(() => ({ start: null, end: null })),
   ]);
 
   const [examDates, setExamDates] = useState<ExamRow[]>([
-    { name: "", startDate: null, endDate: null, startTime: null, endTime: null, range: "" },
-  ]);
-
-  const [assignmentDates, setAssignmentDates] = useState<HomeworkRow[]>([
-    { name: "", date: null, time: null, memo: "" },
+    { examContent: "", startDate: null, startTime: null, examLastScore: "", examGoalScore: "" },
   ]);
 
   const navigate = useNavigate();
@@ -105,16 +102,7 @@ const ChangePlanSurvey2Page: React.FC = () => {
       ? Number(location.state.studyPlanId)
       : undefined;
 
-  const toISO = (date: Dayjs | null, time: Dayjs | null) => {
-    if (!date) return null;
-    const base = date
-      .hour(time ? time.hour() : 0)
-      .minute(time ? time.minute() : 0)
-      .second(0)
-      .millisecond(0);
-    return base.toISOString();
-  };
-
+  /* 로그인 이름 표기 */
   useEffect(() => {
     const userData = localStorage.getItem("user");
     if (!userData) return;
@@ -128,90 +116,89 @@ const ChangePlanSurvey2Page: React.FC = () => {
   }, []);
 
   const { data, loading, error } = useQuery(FIND_STUDY_PLAN, {
-    variables: { studyPlanId: studyPlanId as number },
-    skip: !studyPlanId,
+    variables: { studyPlanId: Number.parseInt(String(studyPlanId), 10) },
+    skip: !Number.isInteger(Number(studyPlanId)),
     fetchPolicy: "network-only",
   });
 
   const [updateStudyPlan] = useMutation(UPDATE_STUDY_PLAN);
 
-  // ✅ 서버 응답 → 화면 상태로 변환
+  /* 초기 로드 */
   useEffect(() => {
     if (!data?.findStudyPlan) return;
     const plan = data.findStudyPlan as any;
 
-    // --- 스케줄 요일 매핑 ---
-    const row0: StudyCell[] = days.map(() => ({ start: null, end: null }));
-    plan.schedules?.forEach((s: any) => {
+    // ---- 학습 시간 ----
+    const buckets: StudyCell[][] = Array.from({ length: 7 }, () => []);
+    (plan.schedules ?? []).forEach((s: any) => {
       if (!s?.startTime) return;
       const start = dayjs(s.startTime);
       const end = s.endTime ? dayjs(s.endTime) : null;
-      const jsDay = start.day();            // 0(Sun)~6(Sat)
-      const colIdx = jsDay === 0 ? 6 : jsDay - 1; // Mon=0,...,Sun=6
-      row0[colIdx] = { start, end };
+      const colIdx = (start.day() + 6) % 7; // 일(0)→6, 월(1)→0
+      buckets[colIdx].push({ start, end });
     });
-    setStudyTimes([row0]);
+
+    // 시작 시간순 정렬 후, 첫 슬롯만 초깃값으로 반영
+    buckets.forEach((b) =>
+      b.sort((a, b) => {
+        if (!a.start || !b.start) return 0;
+        return a.start.valueOf() - b.start.valueOf();
+      })
+    );
+
     setTimeRows([0]);
+    const grid: StudyCell[][] = [
+      days.map((_, c) => buckets[c][0] ?? { start: null, end: null }),
+    ];
+    setStudyTimes(grid);
 
-    // --- 시험 채우기 ---
-    if (Array.isArray(plan.exams) && plan.exams.length) {
-      setExamRows(plan.exams.map((_: any, i: number) => i));
-      setExamDates(
-        plan.exams.map((e: any) => ({
-          name: e.subjectName ?? "",
-          startDate: e.examStartDay ? dayjs(e.examStartDay) : null,
-          startTime: e.examStartDay ? dayjs(e.examStartDay) : null,
-          endDate: e.examEndDay ? dayjs(e.examEndDay) : null,
-          endTime: e.examEndDay ? dayjs(e.examEndDay) : null,
-          range: e.examcontent ?? "",
-        }))
-      );
+    // ---- 시험 일정 ----
+    const ex: ExamRow[] = (plan.examSchedules ?? []).map((x: any) => {
+      const dt = x.examStartDay ? dayjs(x.examStartDay) : null;
+      return {
+        examContent: x.examContent ?? "",
+        startDate: dt,
+        startTime: dt,
+        examLastScore: x.examLastScore ?? "",
+        examGoalScore: x.examGoalScore ?? "",
+      };
+    });
+
+    if (ex.length) {
+      setExamDates(ex);
+      setExamRows(Array.from({ length: ex.length }, (_, i) => i));
     } else {
+      setExamDates([
+        { examContent: "", startDate: null, startTime: null, examLastScore: "", examGoalScore: "" },
+      ]);
       setExamRows([0]);
-      setExamDates([{ name: "", startDate: null, endDate: null, startTime: null, endTime: null, range: "" }]);
-    }
-
-    // --- 과제 채우기 ---
-    if (Array.isArray(plan.homeworks) && plan.homeworks.length) {
-      setAssignmentDates(
-        plan.homeworks.map((h: any) => {
-          const due = h.homeworkEndDay ?? h.homeworkStartDay;
-          return {
-            name: h.homeworkName ?? "",
-            date: due ? dayjs(due) : null,
-            time: due ? dayjs(due) : null,
-            memo: h.homeworkContent ?? "",
-          };
-        })
-      );
-    } else {
-      setAssignmentDates([{ name: "", date: null, time: null, memo: "" }]);
     }
   }, [data]);
 
-  // 행 추가/삭제
+  /* 학습시간 행 추가/삭제 */
   const handleAdd = () => {
     setTimeRows((prev) => [...prev, prev.length]);
     setStudyTimes((prev) => [...prev, days.map(() => ({ start: null, end: null }))]);
   };
   const handleRemove = () => {
-    if (timeRows.length > 1) {
-      setTimeRows((prev) => prev.slice(0, -1));
-      setStudyTimes((prev) => prev.slice(0, -1));
-    }
-  };
-  const handleAddExam = () => {
-    setExamRows((prev) => [...prev, prev.length]);
-    setExamDates((prev) => [...prev, { name: "", startDate: null, endDate: null, startTime: null, endTime: null, range: "" }]);
-  };
-  const handleRemoveExam = () => {
-    if (examRows.length > 1) {
-      setExamRows((prev) => prev.slice(0, -1));
-      setExamDates((prev) => prev.slice(0, -1));
-    }
+    setTimeRows((prev) => (prev.length ? prev.slice(0, -1) : prev));
+    setStudyTimes((prev) => (prev.length ? prev.slice(0, -1) : prev));
   };
 
-  // ✅ 저장
+  /* 시험일정 행 추가/삭제 */
+  const handleAddExam = () => {
+    setExamRows((prev) => [...prev, prev.length]);
+    setExamDates((prev) => [
+      ...prev,
+      { examContent: "", startDate: null, startTime: null, examLastScore: "", examGoalScore: "" },
+    ]);
+  };
+  const handleRemoveExam = () => {
+    setExamRows((prev) => (prev.length ? prev.slice(0, -1) : prev));
+    setExamDates((prev) => (prev.length ? prev.slice(0, -1) : prev));
+  };
+
+  /* 저장 */
   const handleAdjustPlan = async () => {
     if (!studyPlanId) {
       alert("선택된 계획 ID가 없습니다.");
@@ -219,38 +206,35 @@ const ChangePlanSurvey2Page: React.FC = () => {
     }
     setLoadingAdjust(true);
     try {
-      const availableStudyScheduleInput = studyTimes.flatMap((row) =>
-        row
-          .filter((c) => c.start && c.end)
-          .map((c) => ({
-            startTime: c.start!.toISOString(),
-            endTime: c.end!.toISOString(),
-            content: "공부시간",
-          }))
-      );
+      // ✅ GraphQL input에 맞게 day + timeRanges로 변환
+      const availableStudyScheduleInput = days
+        .map((day, dayIndex) => {
+          const timeRanges = studyTimes
+            .map((row) => row[dayIndex])
+            .filter((c) => c.start && c.end)
+            .map((c) => ({
+              startTime: c.start!.toISOString(),
+              endTime: c.end!.toISOString(),
+              // ❌ TimeRangeInput에 content가 없으므로 보내지 않음
+              // content: "공부시간",
+            }));
 
+          return { day, timeRanges };
+        })
+        .filter((d) => d.timeRanges.length > 0);
+
+      // ✅ 백엔드 스키마(ExamUpdateContentInput)에 맞춰 필드 보정:
+      // subjectName 필수, examContent → examcontent(소문자 c)
       const examUpdateContentInput = examDates
-        .filter((e) => e.name && e.startDate)
+        .filter((e) => e.examContent && e.startDate && e.startTime)
         .map((e) => {
-          const startAt = toISO(e.startDate, e.startTime);
-          const endAt = toISO(e.endDate, e.endTime);
+          const start = combineDateTime(e.startDate, e.startTime)!;
           return {
-            subjectName: e.name,
-            examcontent: e.range || "",
-            examStartDay: startAt ?? "",
-            examEndDay: endAt ?? "",
-          };
-        });
-
-      const homeworkUpdateInput = assignmentDates
-        .filter((h) => h.name && h.date)
-        .map((h) => {
-          const due = toISO(h.date, h.time) ?? "";
-          return {
-            homeworkName: h.name,
-            homeworkStartDay: due,
-            homeworkEndDay: due,
-            homeworkContent: h.memo || "",
+            subjectName: e.examContent, // 임시 매핑(과목명 입력 필드가 따로 없으므로)
+            examcontent: e.examContent, // 백엔드 필드명에 맞춤
+            examStartDay: start.format("YYYY-MM-DD HH:mm:ss"),
+            examLastScore: e.examLastScore ?? "",
+            examGoalScore: e.examGoalScore ?? "",
           };
         });
 
@@ -259,7 +243,6 @@ const ChangePlanSurvey2Page: React.FC = () => {
           studyPlanId,
           availableStudyScheduleInput,
           examUpdateContentInput,
-          homeworkUpdateInput,
         },
       };
 
@@ -284,7 +267,9 @@ const ChangePlanSurvey2Page: React.FC = () => {
     <>
       <header>
         <nav>
-          <h2><Link to="/">Edu<br />Compass</Link></h2>
+          <h2>
+            <Link to="/">Edu<br />Compass</Link>
+          </h2>
           <ul>
             <li><Link to="/planStart" className="active">계획 캘린더</Link></li>
             <li><Link to="/makeplanStart">AI 계획 생성</Link></li>
@@ -308,8 +293,6 @@ const ChangePlanSurvey2Page: React.FC = () => {
               <div className="row-controls">
                 <button className="control-btn" onClick={handleAdd}>+ 추가</button>
                 <button className="control-btn" onClick={handleRemove}>- 삭제</button>
-                <button className="control-btn" onClick={() => navigate("/plancall")}>내 일정 불러오기</button>
-                <button className="control-btn">직접 수정</button>
               </div>
             </div>
 
@@ -318,31 +301,49 @@ const ChangePlanSurvey2Page: React.FC = () => {
                 {days.map((day, dayIndex) => (
                   <div className="day-column" key={`${day}-${rowId}`}>
                     {rowIndex === 0 && <div className="day-label">{day}</div>}
-                    <TimePicker
-                      label="시작시간"
-                      value={studyTimes[rowIndex][dayIndex].start}
-                      onChange={(nv) => {
-                        const updated = [...studyTimes];
-                        const prev = updated[rowIndex][dayIndex].start;
-                        updated[rowIndex][dayIndex].start =
-                          prev && nv ? prev.hour(nv.hour()).minute(nv.minute()).second(0).millisecond(0) : nv;
-                        setStudyTimes(updated);
-                      }}
-                      slotProps={commonSlotProps}
-                    />
-                    <span className="time-separator">~</span>
-                    <TimePicker
-                      label="종료시간"
-                      value={studyTimes[rowIndex][dayIndex].end}
-                      onChange={(nv) => {
-                        const updated = [...studyTimes];
-                        const prev = updated[rowIndex][dayIndex].end;
-                        updated[rowIndex][dayIndex].end =
-                          prev && nv ? prev.hour(nv.hour()).minute(nv.minute()).second(0).millisecond(0) : nv;
-                        setStudyTimes(updated);
-                      }}
-                      slotProps={commonSlotProps}
-                    />
+
+                    <div className="cell-inline">
+                      <TimePicker
+                        label="시작시간"
+                        value={studyTimes[rowIndex][dayIndex].start}
+                        onChange={(nv) => {
+                          const updated = [...studyTimes];
+                          const prev = updated[rowIndex][dayIndex].start;
+                          updated[rowIndex][dayIndex].start =
+                            prev && nv ? prev.hour(nv.hour()).minute(nv.minute()).second(0).millisecond(0) : nv;
+                          setStudyTimes(updated);
+                        }}
+                        slotProps={commonSlotProps}
+                      />
+
+                      <span className="time-separator">~</span>
+
+                      <TimePicker
+                        label="종료시간"
+                        value={studyTimes[rowIndex][dayIndex].end}
+                        onChange={(nv) => {
+                          const updated = [...studyTimes];
+                          const prev = updated[rowIndex][dayIndex].end;
+                          updated[rowIndex][dayIndex].end =
+                            prev && nv ? prev.hour(nv.hour()).minute(nv.minute()).second(0).millisecond(0) : nv;
+                          setStudyTimes(updated);
+                        }}
+                        slotProps={commonSlotProps}
+                      />
+
+                      {/* ✅ 셀(특정 요일의 특정 행)만 삭제 */}
+                      <button
+                        className="clear-cell-btn"
+                        title="이 셀만 삭제"
+                        onClick={() => {
+                          const updated = [...studyTimes];
+                          updated[rowIndex][dayIndex] = { start: null, end: null };
+                          setStudyTimes(updated);
+                        }}
+                      >
+                        ✕
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -352,7 +353,7 @@ const ChangePlanSurvey2Page: React.FC = () => {
           {/* 시험 일정 */}
           <section className="schedule-section">
             <div className="section-header-flex">
-              <h3 className="section-title">시험 일정 변경 및 추가</h3>
+              <h3 className="section-title">시험 일정</h3>
               <div className="row-controls">
                 <button className="control-btn" onClick={handleAddExam}>+ 추가</button>
                 <button className="control-btn" onClick={handleRemoveExam}>- 삭제</button>
@@ -363,18 +364,18 @@ const ChangePlanSurvey2Page: React.FC = () => {
               <div className="schedule-row" key={`exam-${i}`}>
                 <input
                   type="text"
-                  placeholder="시험 이름"
+                  placeholder="시험 이름 (examContent)"
                   className="exam-name-input"
-                  value={examDates[i]?.name || ""}
+                  value={examDates[i]?.examContent || ""}
                   onChange={(e) => {
                     const updated = [...examDates];
-                    updated[i].name = e.target.value;
+                    updated[i].examContent = e.target.value;
                     setExamDates(updated);
                   }}
                 />
                 <div className="date-range">
                   <DatePicker
-                    label="시작일"
+                    label="시험 날짜"
                     value={examDates[i]?.startDate ?? null}
                     onChange={(v) => {
                       const updated = [...examDates];
@@ -384,7 +385,7 @@ const ChangePlanSurvey2Page: React.FC = () => {
                     slotProps={commonSlotProps}
                   />
                   <TimePicker
-                    label="시작시간"
+                    label="시험 시간"
                     value={examDates[i]?.startTime ?? null}
                     onChange={(v) => {
                       const updated = [...examDates];
@@ -393,109 +394,29 @@ const ChangePlanSurvey2Page: React.FC = () => {
                     }}
                     slotProps={commonSlotProps}
                   />
-                  <span className="range-separator">~</span>
-                  <DatePicker
-                    label="종료일"
-                    value={examDates[i]?.endDate ?? null}
-                    onChange={(v) => {
+                  <input
+                    type="text"
+                    placeholder="직전 점수 (예: 85)"
+                    className="range-memo-input"
+                    value={examDates[i]?.examLastScore ?? ""}
+                    onChange={(e) => {
                       const updated = [...examDates];
-                      updated[i].endDate = v;
+                      updated[i].examLastScore = e.target.value;
                       setExamDates(updated);
                     }}
-                    slotProps={commonSlotProps}
-                  />
-                  <TimePicker
-                    label="종료시간"
-                    value={examDates[i]?.endTime ?? null}
-                    onChange={(v) => {
-                      const updated = [...examDates];
-                      updated[i].endTime = v;
-                      setExamDates(updated);
-                    }}
-                    slotProps={commonSlotProps}
                   />
                   <input
                     type="text"
-                    placeholder="시험 범위 입력"
+                    placeholder="목표 점수 (예: 95)"
                     className="range-memo-input"
-                    value={examDates[i]?.range ?? ""}
+                    value={examDates[i]?.examGoalScore ?? ""}
                     onChange={(e) => {
                       const updated = [...examDates];
-                      updated[i].range = e.target.value;
+                      updated[i].examGoalScore = e.target.value;
                       setExamDates(updated);
                     }}
                   />
                 </div>
-              </div>
-            ))}
-          </section>
-
-          {/* 과제 일정 */}
-          <section className="schedule-section">
-            <div className="section-header-flex">
-              <h3 className="section-title">과제 일정 변경 및 추가</h3>
-              <div className="row-controls">
-                <button
-                  className="control-btn"
-                  onClick={() => setAssignmentDates((prev) => [...prev, { name: "", date: null, time: null, memo: "" }])}
-                >
-                  + 추가
-                </button>
-                <button
-                  className="control-btn"
-                  onClick={() => setAssignmentDates((prev) => (prev.length > 1 ? prev.slice(0, -1) : prev))}
-                >
-                  - 삭제
-                </button>
-              </div>
-            </div>
-
-            {assignmentDates.map((entry, i) => (
-              <div className="schedule-row horizontal" key={`assignment-${i}`}>
-                <input
-                  type="text"
-                  placeholder="과제 이름"
-                  className="text-input"
-                  style={{ flex: "2" }}
-                  value={entry.name}
-                  onChange={(e) => {
-                    const updated = [...assignmentDates];
-                    updated[i].name = e.target.value;
-                    setAssignmentDates(updated);
-                  }}
-                />
-                <DatePicker
-                  label="마감일"
-                  value={entry.date}
-                  onChange={(v) => {
-                    const updated = [...assignmentDates];
-                    updated[i].date = v;
-                    setAssignmentDates(updated);
-                  }}
-                  slotProps={commonSlotProps}
-                />
-                <TimePicker
-                  label="마감시간"
-                  value={entry.time}
-                  onChange={(v) => {
-                    const updated = [...assignmentDates];
-                    updated[i].time = v;
-                    setAssignmentDates(updated);
-                  }}
-                  slotProps={commonSlotProps}
-                />
-                <input
-                  type="text"
-                  placeholder="과제 메모"
-                  className="text-input"
-                  style={{ flex: "4" }}
-                  value={entry.memo}
-                  onChange={(e) => {
-                    const updated = [...assignmentDates];
-                    updated[i].memo = e.target.value;
-                    setAssignmentDates(updated);
-                  }}
-                />
               </div>
             ))}
           </section>

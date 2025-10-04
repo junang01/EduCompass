@@ -45,6 +45,6 @@ export class StudySchedule {
     onDelete: 'CASCADE',
     nullable: true,
   })
-  @Field(() => StudyPlan)
+  @Field(() => StudyPlan, { nullable: true })
   studyPlan: StudyPlan;
 }

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import './status.css';
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -8,8 +8,11 @@ import { gql, useLazyQuery } from '@apollo/client';
 import dayjs from 'dayjs';
 
 const GET_STATS_BY_PERIOD = gql`
-  query GetStatsByPeriod($start: String!, $end: String!) {
-    getStatsByPeriod(start: $start, end: $end) {
+  query GetStatsByPeriod($start: String!, $end: String!, $planId: Int) {
+    getStatsByPeriod(start: $start, end: $end, planId: $planId) {
+      completionRate
+      postponeRate
+      incompleteRate
       subjectStats {
         subject
         completionRate
@@ -20,23 +23,23 @@ const GET_STATS_BY_PERIOD = gql`
   }
 `;
 
-const subSubjects: { [key: string]: string[] } = {
-  국어: ["화법과 작문", "언어와 매체"],
-  수학: ["확률과 통계", "미적분", "기하"],
-  영어: ["영어"],
-  한국사: ["한국사"],
-  제2외국어: ["독일어", "프랑스어", "스페인어", "중국어", "일본어", "러시아어", "아랍어", "한문"],
-  사회탐구: ["생활과 윤리", "윤리와 사상", "한국지리", "세계지리", "동아시아사", "세계사", "정치와 법", "경제", "사회·문화"],
-  과학탐구: ["물리학 I", "물리학 Ⅱ", "화학 I", "화학 Ⅱ", "생명과학 I", "생명과학 Ⅱ", "지구과학 I", "지구과학 Ⅱ"]
+type SubjectStat = {
+  subject: string;
+  completionRate: number;
+  postponeRate: number;
+  incompleteRate: number;
 };
 
 const StatusPage: React.FC = () => {
   const [username, setUsername] = useState<string>("");
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
+  const [planId, setPlanId] = useState<number | undefined>(undefined);
   const [fetchStats, { data, loading, error }] = useLazyQuery(GET_STATS_BY_PERIOD);
+  const [params] = useSearchParams();
   const navigate = useNavigate();
 
+  // 사용자명, planId 불러오기
   useEffect(() => {
     const userData = localStorage.getItem("user");
     if (userData) {
@@ -47,8 +50,17 @@ const StatusPage: React.FC = () => {
         console.error("❌ localStorage 파싱 실패:", error);
       }
     }
-  }, []);
 
+    const planParam = params.get("planId");
+    if (planParam) {
+      setPlanId(Number(planParam));
+    } else {
+      const saved = localStorage.getItem("lastPlanId");
+      if (saved) setPlanId(Number(saved));
+    }
+  }, [params]);
+
+  // 조회 버튼
   const handleQueryClick = () => {
     if (!startDate || !endDate) {
       alert("기간을 설정해주세요!");
@@ -64,9 +76,10 @@ const StatusPage: React.FC = () => {
       return;
     }
 
-    fetchStats({ variables: { start: startDate, end: endDate } });
+    fetchStats({ variables: { start: startDate, end: endDate, planId } });
   };
 
+  // 로그아웃
   const handleLogout = async () => {
     const userData = localStorage.getItem("user");
     if (!userData) return;
@@ -81,9 +94,7 @@ const StatusPage: React.FC = () => {
           Authorization: `Bearer ${accessToken}`,
         },
         credentials: "include",
-        body: JSON.stringify({
-          query: `mutation { logout }`,
-        }),
+        body: JSON.stringify({ query: `mutation { logout }` }),
       });
 
       const result = await response.json();
@@ -99,50 +110,19 @@ const StatusPage: React.FC = () => {
     }
   };
 
-  const subjectStats = data?.getStatsByPeriod?.subjectStats || [];
+  // 서버 응답
+  const subjectStats: SubjectStat[] = data?.getStatsByPeriod?.subjectStats ?? [];
+  const isEmpty = subjectStats.length === 0;
 
-  // 상위 과목별 통계 집계
-  const groupedStats: {
-    [key: string]: { completionRate: number; postponeRate: number; incompleteRate: number; count: number }
-  } = {};
-
-type SubjectStat = {
-  subject: string;
-  completionRate: number;
-  postponeRate: number;
-  incompleteRate: number;
-};
-
-(subjectStats as SubjectStat[]).forEach((stat) => {
-  for (const [main, subs] of Object.entries(subSubjects)) {
-    if (subs.includes(stat.subject) || stat.subject === main) {
-      if (!groupedStats[main]) {
-        groupedStats[main] = {
-          completionRate: 0,
-          postponeRate: 0,
-          incompleteRate: 0,
-          count: 0,
-        };
-      }
-      groupedStats[main].completionRate += stat.completionRate;
-      groupedStats[main].postponeRate += stat.postponeRate;
-      groupedStats[main].incompleteRate += stat.incompleteRate;
-      groupedStats[main].count += 1;
-      break;
-    }
-  }
-});
-
-  const isProgressEmpty = Object.keys(groupedStats).length === 0;
+  // 퍼센트 반올림 헬퍼
+  const pct = (n: number) => Math.max(0, Math.min(100, Math.round(n)));
 
   return (
     <>
       <header>
         <nav>
           <h2>
-            <Link to="/">
-              Edu<br />Compass
-            </Link>
+            <Link to="/">Edu<br />Compass</Link>
           </h2>
           <ul>
             <li><Link to="/calendar">계획 캘린더</Link></li>
@@ -167,9 +147,12 @@ type SubjectStat = {
           <div className="sidebar-title">학습 현황</div>
           <ul className="sidebar-menu">
             <li className="active"><a href="#">학습 현황</a></li>
-            {Object.keys(groupedStats).map((mainSubject) => (
-              <li key={mainSubject}>
-                <Link to={`/statusDetail/${mainSubject}`} style={{ fontSize: '12px' }}>{mainSubject}</Link>
+            {/* 세부과목을 바로 사이드바에 노출 */}
+            {subjectStats.map((s) => (
+              <li key={s.subject}>
+                <Link to={`/statusDetail/${encodeURIComponent(s.subject)}?planId=${planId}`} style={{ fontSize: '12px' }}>
+                  {s.subject}
+                </Link>
               </li>
             ))}
             <hr />
@@ -201,41 +184,43 @@ type SubjectStat = {
             <div className="no-plan-message">로딩 중...</div>
           ) : error ? (
             <div className="no-plan-message">에러 발생: {error.message}</div>
-          ) : isProgressEmpty ? (
-            <div className="no-plan-message">생성된 AI 계획이 없습니다.</div>
+          ) : isEmpty ? (
+            <div className="no-plan-message">해당 기간에 학습 현황이 없습니다.</div>
           ) : (
             <div className="subject-cards">
-              {Object.entries(groupedStats).map(([subject, stat]) => {
-                const avg = (v: number) => Math.round(v / stat.count);
-                const percentData = {
-                  이행: avg(stat.completionRate),
-                  불이행: avg(stat.incompleteRate),
-                  연기: avg(stat.postponeRate),
-                };
+              {subjectStats.map((s) => {
+                const completion = pct(s.completionRate);
+                const postpone = pct(s.postponeRate);
+                const incomplete = pct(s.incompleteRate);
                 return (
-                  <div className="subject-card" key={subject}>
-                    <h4>{subject}</h4>
-                    {(['이행', '불이행', '연기'] as const).map((type) => {
-                      const percentValue = percentData[type];
-                      return (
-                        <div className="progress-bar" key={type}>
-                          <span>계획 {type}률</span>
-                          <div className="bar-line-wrapper">
-                            <div className="bar-background">
-                              <div
-                                className={`bar-fill ${type === '불이행' ? 'fail' : type === '연기' ? 'delay' : ''}`}
-                                style={{ width: `${percentValue}%` }}
-                              ></div>
-                            </div>
-                            <span className="percent-text">{percentValue}%</span>
+                  <div className="subject-card" key={s.subject}>
+                    <h4>{s.subject}</h4>
+
+                    {[
+                      { label: '계획 이행률', value: completion, cls: '' },
+                      { label: '계획 불이행률', value: incomplete, cls: 'fail' },
+                      { label: '계획 연기률', value: postpone, cls: 'delay' },
+                    ].map((row) => (
+                      <div className="progress-bar" key={row.label}>
+                        <span>{row.label}</span>
+                        <div className="bar-line-wrapper">
+                          <div className="bar-background">
+                            <div className={`bar-fill ${row.cls}`} style={{ width: `${row.value}%` }}></div>
                           </div>
+                          <span className="percent-text">{row.value}%</span>
                         </div>
-                      );
-                    })}
+                      </div>
+                    ))}
+
                     <button
-                      className='detail-btn'
-                      onClick={() => navigate(`/statusDetail/${subject}?start=${startDate}&end=${endDate}`)}>
-                        세부현황
+                      className="detail-btn"
+                      onClick={() =>
+                        navigate(
+                          `/statusDetail/${encodeURIComponent(s.subject)}?start=${startDate}&end=${endDate}&planId=${planId}`
+                        )
+                      }
+                    >
+                      세부현황
                     </button>
                   </div>
                 );

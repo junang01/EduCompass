@@ -28,6 +28,13 @@ export interface IStudyStatusService {
   getOverallStats(userId: number): Promise<any>;
 }
 
+export interface IGetStatsByPeriod {
+  start: string;      // 'YYYY-MM-DD'
+  end: string;        // 'YYYY-MM-DD'
+  user: User;
+  planId?: number;    // 특정 계획만 보고 싶으면 전달 (옵셔널)
+}
+
 export interface IStudyStatusServiceGetStatus{
   id:number,
   user:User

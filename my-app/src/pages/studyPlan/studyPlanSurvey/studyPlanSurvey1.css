@@ -1,111 +1,262 @@
 @charset "utf-8";
 
-* {
-  margin: 0; 
-  padding: 0; 
-  border: 0;
-}
-ul {
-  list-style: none;
-}
-a {
-  text-decoration: none;
-}
+/* ---------- Reset ---------- */
+* { margin: 0; padding: 0; border: 0; box-sizing: border-box; }
+ul { list-style: none; }
+a { text-decoration: none; }
+html, body { height: 100vh; font-family: Arial, sans-serif; }
 
-html, body {
-  height: 100%;
-}
-
+/* ---------- Layout ---------- */
 .mainContainer {
   width: 100%;
-  height: 100%;
+  padding-top: 20px;
   display: flex;
   justify-content: center;
-  align-items: center;
-  overflow: hidden;
+  align-items: flex-start;
 }
 
 .mainContainer_body {
-  background-color: white;
-  width: 85%;
-  height: 95%;
+  background-color: #ffffff;
+  width: 90%;
+  max-width: 1280px;
   border-radius: 20px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  padding: 16px 20px;
+
+  /* 드롭다운이 잘리지 않도록 */
+  overflow: visible;
+  position: relative;
 }
 
 .page1Div {
   width: 100%;
   height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------- 헤더 ---------- */
+.questExplain {
+  width: 100%;
+  border-bottom: 1px solid #e5e6eb;
+  padding: 12px 0;
+  margin-bottom: 12px;
 }
 
 .questExplain h3 {
   margin: 0;
   color: #00107B;
-}
-.questExplain {
-  width: 100%;
-  height: 10%;
-  border-bottom: 1px solid #D3D3D3;
-  padding-left: 30px;
-  box-sizing: border-box;
-  display: flex;
-  align-items: center;
+  font-size: 20px;
 }
 
-.firstCalendar {
-  padding: 2rem;
-  width: 100%;
-  height: calc(100% - 2rem);
-  display: flex;
-  justify-content: center;
+.questExplain p {
+  margin: 6px 0 0;
+  color: #666;
+  font-size: 14px;
+  text-align: center;
 }
 
-.calendarWrapper {
-  position: relative;
-  width: 95%;
-  height: 100%;
-  overflow: hidden;
-}
-.first_calendar {
+/* ---------- 요일: 한 줄 구성 ---------- */
+.availableTimeForm {
   width: 100%;
-  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.calendarOverlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(210, 210, 210, 0.85);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10;
+/* 왼쪽(라벨/버튼) | 오른쪽(시간대) 2열 그리드 */
+.dayRow {
+  padding: 10px 12px;
+  border: 1px solid #e0e0e0;
   border-radius: 10px;
+  background-color: #fafafa;
+  display: grid;
+  grid-template-columns: 200px 1fr;   /* 넉넉하게 */
+  align-items: center;
+  column-gap: 12px;
+  min-height: 56px;
+
+  /* 드롭다운이 줄 밖으로 나와도 보이게 */
+  overflow: visible;
 }
 
-.rbc-calendar,
-.rbc-time-view,
-.rbc-time-content,
-.rbc-time-gutter,
-.rbc-day-slot,
-.rbc-time-header {
-  box-sizing: border-box;
-}
-
-.fetchBtn {
-  padding: 12px 24px;
-  color: black;
-  font-weight: bold;
+.dayRow strong {
   font-size: 16px;
-  border-radius: 8px;
-  border: none;
-  cursor: pointer;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-  transition: background 0.2s ease-in-out;
+  color: #333;
+  width: 24px;
 }
 
-.fetchBtn:hover {
-  background-color: gray;
-  color: white;
+/* 왼쪽 컨트롤(라벨, +, 전체삭제) */
+.dayRow > div:first-child {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;                 /* 줄바꿈 금지 */
 }
+
+/* 버튼 공통 */
+.dayRow button {
+  padding: 4px 10px;
+  font-size: 13px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  cursor: pointer;
+  background: #f0f0f0;
+  transition: all 0.2s;
+  white-space: nowrap;               /* '전체삭제' 한 줄 유지 */
+  flex-shrink: 0;                    /* 폭 부족해도 줄이지 않음 */
+}
+.dayRow button:hover {
+  background-color: #00107B;
+  color: #ffffff;
+  border-color: #00107B;
+}
+
+/* ---------- 시간대 입력 ---------- */
+.timeInputs {
+
+  /* 시간이 많아져도 한 줄 유지 + 드롭다운 보이게 */
+  overflow: visible;
+  white-space: nowrap;
+  scrollbar-width: thin;
+}
+
+.timeRange {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 8px;
+}
+
+.timeRange input[type="time"] {
+  padding: 4px 6px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 14px;
+  background: #fff;
+
+  position: relative; /* z-index가 필요할 때 대비 */
+  z-index: 1;
+}
+
+.timeRange span {
+  font-size: 14px;
+  color: #444;
+}
+
+/* 삭제 버튼 강조 */
+.timeRange button {
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+.timeRange button:hover {
+  background: #dc3545;
+  color: #ffffff;
+  border-color: #dc3545;
+}
+
+/* 하단 안내 */
+small { color: #333; }
+
+/* ---------- 화면 높이 작을 때 살짝 축소 ---------- */
+@media (max-height: 820px) {
+  .mainContainer_body {
+    transform: scale(0.95);
+    transform-origin: top center;
+  }
+}
+@media (max-height: 740px) {
+  .mainContainer_body {
+    transform: scale(0.90);
+    transform-origin: top center;
+  }
+}
+
+/* ---------- 모바일 대응 ---------- */
+@media (max-width: 640px) {
+  .dayRow {
+    grid-template-columns: 1fr;
+    row-gap: 8px;
+  }
+  .timeInputs {
+    white-space: normal;             /* 모바일에선 자동 줄바꿈 허용 */
+  }
+}
+
+/* ===== 커스텀 타임피커 ===== */
+.confirm-time {
+  position: relative;
+  display: inline-block;
+}
+
+.ct-display {
+  width: 118px;
+  padding: 4px 6px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 14px;
+  background: #fff;
+  cursor: pointer;
+}
+
+/* 팝오버 */
+.ct-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 9999;
+  width: 260px;
+  padding: 10px;
+  background: #fff;
+  border: 1px solid #e2e2e2;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+}
+
+.ct-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.ct-ampm {
+  padding: 6px 10px;
+  border: 1px solid #ccc;
+  background: #f5f5f5;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.ct-select {
+  flex: 1;
+  padding: 6px 8px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 14px;
+  background: #fff;
+}
+
+.ct-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.ct-btn {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  background: #f5f5f5;
+  font-size: 13px;
+  cursor: pointer;
+}
+.ct-btn.confirm {
+  background: #00107B;
+  color: #fff;
+  border-color: #00107B;
+}
+.ct-btn.confirm:hover { filter: brightness(0.95); }
+.ct-btn.cancel:hover { background: #eee; }

@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { StudyPlan } from './entities/study-plan.entity';
 import { ExamSchedule } from './entities/exam-schedule.entity';
-import { StudySchedule } from '../studyschedule/entities/studyschedule.entity';
+import { StudySchedule } from '../studySchedule/entities/studySchedule.entity';
 import { Subject } from '../subject/entities/subject.entity';
 import { SubjectService } from '../subject/subject.service';
 import { User } from '../users/entities/user.entity';
@@ -23,6 +23,7 @@ import {
   IStudyPlanServiceUpdateSchedule,
 } from './interfaces/study-plan.interface';
 import { StudyScheduleService } from '../studySchedule/studyschedule.service';
+import { StudyStatusService } from '../study-status/study-status.service'; // ✅ 추가됨
 
 dotenv.config();
 
@@ -38,6 +39,7 @@ const StudyPlanResponseSchema = z.object({
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
+
 @Injectable()
 export class StudyPlansService {
   constructor(
@@ -55,20 +57,36 @@ export class StudyPlansService {
     private readonly chatGptPrompt: Repository<ChatGptPrompt>,
     @InjectRepository(User)
     private readonly usersRepository: Repository<User>,
+    private readonly studyStatusService: StudyStatusService, // ✅ StudyStatusService 주입
   ) {}
 
   async createStudyPlan({ userId, createStudyPlanInput }: ICreateStudyPlanService): Promise<StudyPlan> {
     const promptName = '계획생성';
     try {
-      const { title, availableStudyScheduleInput, studyPeriod, learningStyle, reviewDays, missedPlanDays, subjects } = createStudyPlanInput;
+      const {
+        title,
+        availableStudyScheduleInput,
+        studyPeriod,
+        learningStyle,
+        reviewDays,
+        missedPlanDays,
+        subjects,
+      } = createStudyPlanInput;
+
       const availableTimes = availableStudyScheduleInput
-        .map((schedule) => `${schedule.day}: ${schedule.timeRanges.map((time) => `${time.startTime} - ${time.endTime}`).join(', ')}`)
-        .join('\n'); // 학습 가능 시간으로 요일: 시작시간 - 종료시간 배열로 파싱
+        .map(
+          (schedule) =>
+            `${schedule.day}: ${schedule.timeRanges
+              .map((time) => `${time.startTime} - ${time.endTime}`)
+              .join(', ')}`,
+        )
+        .join('\n');
+
       const reviewDay = reviewDays.join(',');
       const missedPlanDay = missedPlanDays.join(',');
       const subjectsPrompt = subjects.map(this.formatSubject).join('\n\n');
 
-      console.log('title:', title); //title확인 왜이러니 너는 좀
+      console.log('title:', title);
       const promptData = {
         studyPeriod,
         availableTimes,
@@ -86,7 +104,11 @@ export class StudyPlansService {
       const response = await openai.responses.parse({
         model: 'gpt-4o',
         input: [
-          { role: 'system', content: '당신은 사용자의 학습 정보를 바탕으로 하루 단위의 학습 계획을 JSON 형식으로 작성하는 AI입니다.' },
+          {
+            role: 'system',
+            content:
+              '당신은 사용자의 학습 정보를 바탕으로 하루 단위의 학습 계획을 JSON 형식으로 작성하는 AI입니다.',
+          },
           {
             role: 'user',
             content: prompt,
@@ -100,11 +122,7 @@ export class StudyPlansService {
       const { newSchedules } = response.output_parsed;
       console.log('OpenAI 응답 원문:', newSchedules);
 
-      console.log('✅ 통과');
-
       const user = await this.usersRepository.findOneBy({ id: userId });
-
-      console.log('✅ 통과');
 
       const studyPlan = this.studyPlanRepository.create({
         title,
@@ -114,16 +132,17 @@ export class StudyPlansService {
         updatedAt: new Date(),
       });
 
-      console.log('✅ 통과');
-
       const saveStudyPlan = await this.studyPlanRepository.save(studyPlan);
       const savedSchedules = await this.parseStudySchedule({ newSchedules, studyPlan, userId });
       const savedExamSchedules = await this.saveExamSchedules({ subjects, studyPlan });
 
-      console.log('✅ 통과');
-
       saveStudyPlan.schedules = savedSchedules;
       saveStudyPlan.examSchedules = savedExamSchedules;
+
+      // ✅ 계획 생성 후 학습 현황 자동 계산 및 저장
+      await this.studyStatusService.recomputeStatusesForPlan(saveStudyPlan.id, userId);
+      console.log('✅ StudyStatus 자동 계산 완료');
+
       return saveStudyPlan;
     } catch (error) {
       console.error('학습 계획 생성 중 오류 발생:', error);
@@ -133,20 +152,18 @@ export class StudyPlansService {
 
   async parseStudySchedule(scheduleData: IStudyPlanServiceParseStudySchedule) {
     const { newSchedules, userId, studyPlan } = scheduleData;
-    // 1. GPT 응답에 들어있는 과목명 다 뽑기
+
     const subjectTitles = [...new Set(newSchedules.map((s) => s.subject))] as string[];
-    // 2. DB에서 해당 과목들 찾기
     const subjectName = await this.subjectService.find({ subjectTitles });
-    // 3. 이름 → 엔티티 매핑 만들기
     const subjectEntities = new Map(subjectName.map((s) => [s.subjectName, s]));
-    // 4. subjectEntity로 연결시켜버리기!~
+
     const scheduleEntities = newSchedules.map((s) => ({
       startTime: new Date(s.startTime),
       endTime: new Date(s.endTime),
       content: s.content,
       user: { id: userId },
       studyPlan: studyPlan,
-      subject: subjectEntities.get(s.subject), // 여기가 핵심!
+      subject: subjectEntities.get(s.subject),
     }));
 
     const savedSchedules = await this.studyScheduleRepository.save(scheduleEntities);
@@ -172,11 +189,15 @@ export class StudyPlansService {
     return await this.examScheduleRepository.save(examSchedules);
   }
 
-  async updateExamSchedules({ examUpdateContentInput, studyPlan }: { examUpdateContentInput: any[]; studyPlan: StudyPlan }): Promise<ExamSchedule[]> {
-    // 1. 기존 시험일정 삭제
+  async updateExamSchedules({
+    examUpdateContentInput,
+    studyPlan,
+  }: {
+    examUpdateContentInput: any[];
+    studyPlan: StudyPlan;
+  }): Promise<ExamSchedule[]> {
     await this.examScheduleRepository.delete({ studyPlan: { id: studyPlan.id } });
 
-    // 2. 새로운 시험일정 저장
     const examSchedules = examUpdateContentInput.map((exam) =>
       this.examScheduleRepository.create({
         examContent: exam.examcontent,
@@ -189,27 +210,22 @@ export class StudyPlansService {
 
     return await this.examScheduleRepository.save(examSchedules);
   }
-  // 파싱하는 부분 공통 로직으로 분리하기.
+
   async updateStudyPlan(updateScheduleInput: IStudyPlanServiceUpdateSchedule) {
-    // 1. api 호출 준비
     const promptName = '계획조정';
     try {
       const { userId, updateStudyPlanInput } = updateScheduleInput;
-      const { availableStudyScheduleInput, examUpdateContentInput, studyPlanId, homeworkUpdateInput } = updateStudyPlanInput;
+      const { availableStudyScheduleInput, examUpdateContentInput, studyPlanId } = updateStudyPlanInput;
       const availableTimes = availableStudyScheduleInput
         .map((d) => `${d.day}: ${d.timeRanges.map((t) => `${t.startTime} - ${t.endTime}`).join(', ')}`)
         .join('\n');
 
       const examContent = examUpdateContentInput
-        .map((exam) => `과목:${exam.subjectName}: 시험범위:${exam.examcontent}, 시험일정:${exam.examStartDay}`)
-        .join('\n');
-
-      const homework = homeworkUpdateInput
         .map(
-          (homework) =>
-            `과제이름:${homework.homeworkName}, 과제내용:${homework.homeworkContent}, 과제시작일:${homework.homeworkStartDay}, 과제마감일:${homework.homeworkEndDay}`,
+          (exam) =>
+            `과목:${exam.subjectName}: 시험범위:${exam.examcontent}, 시험일정:${exam.examStartDay}`,
         )
-        .join('\n ');
+        .join('\n');
       const fullschedule = await this.findOne({ studyPlanId, userId });
       const { schedules, studyPeriod } = fullschedule;
       const studyPlan = fullschedule;
@@ -222,11 +238,9 @@ export class StudyPlansService {
         })
         .join('\n');
 
-      // 2. JSON 타입 리턴 구조 만들기
       const promptData = {
         availableTimes,
         examContent,
-        homework,
         studyPeriod,
         trimSchedules,
       };
@@ -234,11 +248,15 @@ export class StudyPlansService {
       const compilePrompt = Handlebars.compile(findPrompt);
       const prompt = compilePrompt(promptData);
       console.log('프롬프트:', prompt);
-      // 3. 사용자 입력 데이터 + 선택된 계획 넘겨줘 조정 요청
+
       const response = await openai.responses.parse({
         model: 'gpt-4o',
         input: [
-          { role: 'system', content: '당신은 사용자의 기존 학습 계획과 변동사항에 맞춰 학습 계획을 조정해주는 학습플레너입니다.' },
+          {
+            role: 'system',
+            content:
+              '당신은 사용자의 기존 학습 계획과 변동사항에 맞춰 학습 계획을 조정해주는 학습플레너입니다.',
+          },
           {
             role: 'user',
             content: prompt,
@@ -252,14 +270,18 @@ export class StudyPlansService {
       const { newSchedules } = response.output_parsed;
       console.log('OpenAI 응답 원문:', newSchedules);
 
-      // 5. 응답 받아 파싱해 저장
+      await this.studyScheduleRepository.delete({ studyPlan: { id: studyPlan.id } });
+
       const saveStudyPlan = await this.studyPlanRepository.save(studyPlan);
       const savedSchedules = await this.parseStudySchedule({ newSchedules, studyPlan, userId });
-
-      // 6. 기존 시험일정 삭제 후 새로운 시험일정 저장
       await this.updateExamSchedules({ examUpdateContentInput, studyPlan });
 
       saveStudyPlan.schedules = savedSchedules;
+
+      // ✅ 수정 시에도 상태 갱신 (선택)
+      await this.studyStatusService.recomputeStatusesForPlan(studyPlan.id, userId);
+      console.log('✅ 계획 수정 후 StudyStatus 재계산 완료');
+
       return saveStudyPlan;
     } catch (error) {
       console.error('학습 계획 조정 중 오류 발생:', error);
@@ -274,15 +296,19 @@ export class StudyPlansService {
   }
 
   formatSubject(subjects) {
-    const books = subjects.studyBookInput.map((book) => `교재명:${book.bookName}, 목차:${book.bookIndex}, 목표회독수:${book.bookReview}`).join('\n');
+    const books = subjects.studyBookInput
+      .map(
+        (book) =>
+          `교재명:${book.bookName}, 목차:${book.bookIndex}, 목표회독수:${book.bookReview}`,
+      )
+      .join('\n');
     const exams = subjects.examContentInput
       .map(
         (exam) =>
-          `시험범위:${exam.examcontent}, 직전시험성적:${exam.examLastScore}, 목표점수:${exam.examGoalScore}, 시험일정:${exam.examStartDay}
-      `,
+          `시험범위:${exam.examcontent}, 직전시험성적:${exam.examLastScore}, 목표점수:${exam.examGoalScore}, 시험일정:${exam.examStartDay}`,
       )
       .join('\n');
-    return ` 
+    return `
       과목: ${subjects.subject}
       학업수준: ${subjects.studyLevel}
       교재:
@@ -307,8 +333,13 @@ export class StudyPlansService {
     return studyPlan;
   }
 
-  async findExamSchedules({ studyPlanId, userId }: { studyPlanId: number; userId: number }): Promise<ExamSchedule[]> {
-    // 먼저 해당 StudyPlan이 사용자의 것인지 확인
+  async findExamSchedules({
+    studyPlanId,
+    userId,
+  }: {
+    studyPlanId: number;
+    userId: number;
+  }): Promise<ExamSchedule[]> {
     const studyPlan = await this.studyPlanRepository.findOne({
       where: { user: { id: userId }, id: studyPlanId },
     });
@@ -317,7 +348,6 @@ export class StudyPlansService {
       throw new ConflictException('해당 학습 계획이 없습니다.');
     }
 
-    // 시험일정 조회
     return await this.examScheduleRepository.find({
       where: { studyPlan: { id: studyPlanId } },
       relations: ['studyPlan'],

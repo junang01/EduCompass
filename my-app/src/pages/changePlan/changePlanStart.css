@@ -185,3 +185,7 @@ nav ul li a.active {
   font-size: 22px;
   margin-bottom: 20px;
 }
+
+.makeStartBtn {
+  color: white;
+}

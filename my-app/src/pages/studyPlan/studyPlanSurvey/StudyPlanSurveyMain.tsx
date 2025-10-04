@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
-import SurveyPage1 from "./StudyPlanSurvey1";
-import SurveyPage2 from "./StudyPlanSurvey2";
-import { StudyTime } from "./StudyPlanSurvey1";
+import StudyPlanSurvey1Page from "./StudyPlanSurvey1";
+import StudyPlanSurvey2Page from "./StudyPlanSurvey2";
+import type { StudyTime } from "./StudyPlanSurvey1";
 import { Link, useNavigate } from "react-router-dom";
 import "./studyPlanSurveyMain.css";
 
@@ -10,12 +10,15 @@ const StudyPlanSurveyMainPage = () => {
   const [username, setUsername] = useState<string>("");
   const [availableTimes, setAvailableTimes] = useState<StudyTime[]>([]);
 
-  // 유효성 상태 관리
+  // 유효성
   const [page1Valid, setPage1Valid] = useState(false);
   const [page2Valid, setPage2Valid] = useState(false);
 
-  // 2페이지 제출 함수 저장
+  // 제출 함수
   const [submitFn, setSubmitFn] = useState<() => Promise<void>>(() => async () => {});
+
+  // 🔹 제출 로딩 상태
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const userData = localStorage.getItem("user");
@@ -23,7 +26,7 @@ const StudyPlanSurveyMainPage = () => {
       try {
         const parsed = JSON.parse(userData);
         console.log("🧾 parsed.user.name 확인:", parsed.user?.name);
-        setUsername(parsed.user?.name || ""); // ✅ 핵심 수정
+        setUsername(parsed.user?.name || "");
       } catch (error) {
         console.error("❌ localStorage 파싱 실패:", error);
       }
@@ -34,32 +37,30 @@ const StudyPlanSurveyMainPage = () => {
     switch (currentPage) {
       case 1:
         return (
-          <SurveyPage1 
-            onValidationChange={setPage1Valid} 
+          <StudyPlanSurvey1Page
+            onValidationChange={setPage1Valid}
             onUpdateAvailableTimes={setAvailableTimes}
           />
         );
       case 2:
         return (
-          <SurveyPage2
+          <StudyPlanSurvey2Page
             onValidationChange={setPage2Valid}
-            onUpdateBooks={(books) => {
-              console.log("📚 books:", books);
-            }}
-            onUpdateExams={(exams) => {
-              console.log("📝 exams:", exams);
-            }}
-            onUpdatePeriod={(period) => {
-              console.log("📅 period:", period);
-            }}
+            onUpdateBooks={(books) => console.log("📚 books:", books)}
+            onUpdateExams={(exams) => console.log("📝 exams:", exams)}
+            onUpdatePeriod={(period) => console.log("📅 period:", period)}
             availableTimes={availableTimes}
-            onSubmitRequest={(fn) => setSubmitFn(() => fn)} // ✅ 함수 등록
+            onSubmitRequest={(fn) => setSubmitFn(() => fn)}
           />
         );
+      default:
+        return null;
     }
   };
 
   const handleNext = async () => {
+    if (isSubmitting) return; // 🔒 중복 클릭 방지
+
     if (currentPage === 1 && !page1Valid) {
       alert("1페이지는 필수 항목입니다. 내용을 입력해주세요.");
       return;
@@ -71,20 +72,25 @@ const StudyPlanSurveyMainPage = () => {
 
     if (currentPage === 2) {
       try {
+        setIsSubmitting(true);                // 🔵 로딩 시작
         console.log("[DEBUG] StudyPlan 제출 시도");
         await submitFn();
         console.log("[DEBUG] StudyPlan 제출 성공");
+        setCurrentPage((prev) => Math.min(prev + 1, 4)); // 성공 시 다음 페이지
       } catch (err) {
         console.error("[DEBUG] StudyPlan 제출 실패:", err);
         alert("2페이지 계획 생성에 실패했습니다.");
-        return; // 실패 시 다음 페이지로 넘어가지 않도록 차단
+      } finally {
+        setIsSubmitting(false);               // 🟢 로딩 종료
       }
+      return; // 여기서 종료(아래 공통 이동 로직 실행 안 함)
     }
 
     if (currentPage < 4) setCurrentPage((prev) => prev + 1);
   };
 
   const handlePrev = () => {
+    if (isSubmitting) return; // 로딩 중엔 이동 금지
     if (currentPage > 1) setCurrentPage((prev) => prev - 1);
   };
 
@@ -97,8 +103,6 @@ const StudyPlanSurveyMainPage = () => {
     } else {
       console.warn("⚠️ localStorage에 'user' 데이터 없음");
     }
-
-
     if (!userData) return;
 
     const { accessToken } = JSON.parse(userData);
@@ -108,9 +112,9 @@ const StudyPlanSurveyMainPage = () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`, // 헤더에 토큰 전달
+          Authorization: `Bearer ${accessToken}`,
         },
-        credentials: "include", // 쿠키 있을 경우 포함
+        credentials: "include",
         body: JSON.stringify({
           query: `
             mutation {
@@ -165,15 +169,28 @@ const StudyPlanSurveyMainPage = () => {
         <div className="pageWrap">
           <div className="pageWrap_wrap">{renderPage()}</div>
           <div className="nextCancleBtn">
-            <button className="planBtn" onClick={handlePrev} disabled={currentPage === 1}>
+            <button
+              className="planBtn"
+              onClick={handlePrev}
+              disabled={currentPage === 1 || isSubmitting}
+            >
               이전
             </button>
+
             {currentPage === 2 ? (
-              <button className="planBtn" onClick={handleNext}>
-                제출
+              <button
+                className="planBtn"
+                onClick={handleNext}
+                disabled={isSubmitting || !page2Valid}
+              >
+                {isSubmitting ? "생성중..." : "제출"}
               </button>
             ) : (
-              <button className="planBtn" onClick={handleNext}>
+              <button
+                className="planBtn"
+                onClick={handleNext}
+                disabled={isSubmitting || (currentPage === 1 && !page1Valid)}
+              >
                 다음
               </button>
             )}
